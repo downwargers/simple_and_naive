@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding:utf-8 -*-
 
-from flask_script import Manager, Server
+from flask.ext.script import Manager, Server
 import blog
 
 app = blog.create_app(__name__)
