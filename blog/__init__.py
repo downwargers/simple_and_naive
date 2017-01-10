@@ -5,13 +5,20 @@ from config import config
 from extensions import db, moment, bootstrap, mail, login_manager
 from .auth import auth as auth_blueprint
 from .main import main as main_blueprint
+from log import logger, init_logging
+import json
 
 
-def create_app(config_name):
-    app = Flask(__name__)
+def create_app(name, config_name='development'):
+    app = Flask(name)
     app.config.from_object(config[config_name])
 
+    fd = open(config[config_name].cfg_file_name, 'r')
+    cfg = json.loads(fd.read())
+    app.config.from_mapping(cfg)
+
     config[config_name].init_app(app)
+    init_logging(logger, cfg)
     bootstrap.init_app(app)
     mail.init_app(app)
     moment.init_app(app)
@@ -22,3 +29,5 @@ def create_app(config_name):
     app.register_blueprint(main_blueprint, url_prefix='')
     # attach routes and custom error pages here
     return app
+
+

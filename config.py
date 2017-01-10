@@ -3,8 +3,6 @@
 
 
 class Config(object):
-    SQLALCHEMY_COMMIT_ON_TEARDOWN = True
-
     @staticmethod
     def init_app(app):
         pass
@@ -12,7 +10,7 @@ class Config(object):
 
 class DevelopmentConfig(Config):
     Debug = True
-    SQLALCHEMY_DATABASE_URL = 'postgresql://postgres:postgres@127.0.0.1:5432/blogtext'
+    cfg_file_name = 'blog_dev_cfg.json'
 
 
 class TestingConfig(Config):

@@ -1,10 +1,11 @@
 #!/usr/bin/python
 # -*- coding:utf-8 -*-
-from flask.ext.wtf import Form, ValidationError
-from wtforms import StringField, PasswordField, BooleanField, SubmitField
+from flask.ext.wtf import Form
+from wtforms import StringField, PasswordField, BooleanField, SubmitField, ValidationError
 from wtforms.validators import DataRequired, Length, Email, EqualTo, Regexp
-from ..models.user import User
+
 from blog import db
+from .models import User
 
 
 class LoginForm(Form):
