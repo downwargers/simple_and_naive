@@ -3,11 +3,11 @@
 
 from flask.ext.script import Manager, Server
 from flask.ext.migrate import Migrate, MigrateCommand
-import blog
+import app
 
-app = blog.create_app(__name__)
-manager = Manager(app)
-migrate = Migrate(app, blog.db)
+blog_app = app.create_app(__name__)
+manager = Manager(blog_app)
+migrate = Migrate(blog_app, blog_app.db)
 
 manager.add_command('db', MigrateCommand)
 manager.add_command("server", Server())
@@ -15,7 +15,7 @@ manager.add_command("server", Server())
 
 @manager.shell
 def make_shell_context():
-    return dict(app=app)
+    return dict(app=blog_app)
 
 if __name__ == "__main__":
     manager.run()
