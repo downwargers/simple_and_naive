@@ -7,10 +7,12 @@ from .auth import auth as auth_blueprint
 from .main import main as main_blueprint
 from log import logger, init_logging
 import json
+import os
 
 
 def create_app(name, config_name='development'):
     app = Flask(name)
+    app.root_path = os.path.dirname(os.path.abspath(__file__))
     app.config.from_object(config[config_name])
 
     fd = open(config[config_name].cfg_file_name, 'r')

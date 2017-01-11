@@ -3,11 +3,13 @@
 
 from flask.ext.script import Manager, Server
 from flask.ext.migrate import Migrate, MigrateCommand
-import app
+from app import create_app, db
 
-blog_app = app.create_app(__name__)
+
+blog_app = create_app(__name__)
 manager = Manager(blog_app)
-migrate = Migrate(blog_app, blog_app.db)
+migrate = Migrate(blog_app, db)
+
 
 manager.add_command('db', MigrateCommand)
 manager.add_command("server", Server())

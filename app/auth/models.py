@@ -5,6 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask.ext.login import UserMixin, AnonymousUserMixin
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from flask import current_app
+from datetime import datetime
 
 
 class User(UserMixin, db.Model):
@@ -12,9 +13,16 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(64), unique=True, index=True)
     username = db.Column(db.String(64), unique=True, index=True)
+    about_me = db.Column(db.Text())
+    member_since = db.Column(db.DateTime(), default=datetime.utcnow)
+    last_seen = db.Column(db.DateTime(), default=datetime.utcnow)
     password_hash = db.Column(db.String(128))
     confirmed = db.Column(db.Boolean, default=False)
     permissions = db.Column(db.Integer, default=0)
+
+    def ping(self):
+        self.last_seen = datetime.utcnow()
+        db.session.add(self)
 
     @property
     def password(self):
@@ -43,6 +51,14 @@ class User(UserMixin, db.Model):
         db.session.add(self)
         return True
 
+    def show_roles_id(self):
+        return [relation.role_id for relation in UserRoleRelation.query.filter(UserRoleRelation.user_id == self.id).all()]
+
+    def set_roles(self, roles_id):
+        UserRoleRelation.query.filter(UserRoleRelation.user_id == self.id).delete()
+        relation_to_add = [UserRoleRelation(user_id=self.id, role_id=role_id) for role_id in roles_id]
+        db.session.add_all(relation_to_add)
+
     def add_permissions(self, permissions):
         for permission in permissions:
             if permission != Permission.ADMINISTER:
@@ -54,7 +70,7 @@ class User(UserMixin, db.Model):
                 self.permissions ^= permission
 
     def can(self, permissions):
-        role_permissions = reduce(lambda x, y:x.permissions|y.permissions, db.query(UserRoleRelation).filter(UserRoleRelation.user_id == self.id).all())
+        role_permissions = reduce(lambda x, y:x.permissions|y.permissions, UserRoleRelation.query.filter(UserRoleRelation.user_id == self.id).all())
         return self.role is not None and ((role_permissions | self.permissions) & permissions) == permissions
 
     def is_administrator(self):
@@ -63,7 +79,7 @@ class User(UserMixin, db.Model):
 
 @login_manager.user_loader
 def load_user(user_id):
-    return db.query(User).get(int(user_id))
+    return User.query.get(int(user_id))
 
 
 class AnonymousUser(AnonymousUserMixin):
@@ -102,7 +118,7 @@ class Role(db.Model):
         }
 
         for r in roles:
-            role = db.query(Role).filter(Role.name == r).first()
+            role = Role.query.filter(Role.name == r).first()
         if role is None:
             role = Role(name=r)
         role.permissions = roles[r][0]
@@ -113,6 +129,7 @@ class Role(db.Model):
 
 class UserRoleRelation(db.Model):
     __tablename__ = 'user_role_relation'
+    id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer)
     role_id = db.Column(db.Integer)
 
