@@ -38,6 +38,7 @@ def register():
         db.session.add(user)
         db.session.commit()
         user.set_roles([Role.query.filter(Role.default is True).id])
+        db.session.commit()
         token = user.generate_confirmation_token()
         send_email(user.email, 'Confirm Your Account', 'auth/email/confirm', user=user, token=token)
         flash('A confirmation email has been sent to you by email.')

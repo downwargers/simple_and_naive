@@ -1,5 +1,8 @@
 #!/usr/bin/python
 # -*- coding:utf-8 -*-
+import os
+
+basedir = os.path.abspath(os.path.dirname(__file__))
 
 
 class Config(object):
@@ -11,11 +14,14 @@ class Config(object):
 
 
 class DevelopmentConfig(Config):
-    Debug = True
+    DEBUG = True
+    FLASK_ADMIN = 'downwargers@163.com'
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'data.sqlite')
     cfg_file_name = 'blog_dev_cfg.json'
 
 
 class TestingConfig(Config):
+    cfg_file_name = 'blog_test_cfg.json'
     pass
 
 

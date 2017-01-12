@@ -142,7 +142,8 @@ class UserRoleRelation(db.Model):
         self.role_id = role.id
 
 
-class Permission(object):
+class Permission(db.Model):
+    __tablename__ = 'permission'
     FOLLOW = 1 << 0
     COMMENT = 1 << 1
     WRITE_ARTICLES = 1 << 2
