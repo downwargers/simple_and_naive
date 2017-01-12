@@ -18,7 +18,6 @@ class User(UserMixin, db.Model):
     last_seen = db.Column(db.DateTime(), default=datetime.utcnow)
     password_hash = db.Column(db.String(128))
     confirmed = db.Column(db.Boolean, default=False)
-    permissions = db.Column(db.Integer, default=0)
 
     def ping(self):
         self.last_seen = datetime.utcnow()
@@ -58,20 +57,23 @@ class User(UserMixin, db.Model):
         UserRoleRelation.query.filter(UserRoleRelation.user_id == self.id).delete()
         relation_to_add = [UserRoleRelation(user_id=self.id, role_id=role_id) for role_id in roles_id]
         db.session.add_all(relation_to_add)
+        db.session.commit()
 
-    def add_permissions(self, permissions):
-        for permission in permissions:
-            if permission != Permission.ADMINISTER:
-                self.permissions |= permission
+    def show_permissions_id(self):
+        return [relation.permission_id for relation in UserPermissionRelation.query.filter(UserPermissionRelation.user_id == self.id).all()]
 
-    def del_permissions(self, permissions):
-        for permission in permissions:
-            if permission != Permission.ADMINISTER and self.permissions | permission == self.permissions:
-                self.permissions ^= permission
+    def set_permissions(self, permissions_id):
+        UserPermissionRelation.query.filter(UserPermissionRelation.user_id == self.id).delete()
+        permission_administer_id = Permission.query.filter(Permission.name == Permission.ADMINISTER).first().id
+        relation_to_add = [UserPermissionRelation(user_id=self.id, permission_id=permission_id) for permission_id in permissions_id if permission_id != permission_administer_id]
+        db.session.add_all(relation_to_add)
+        db.session.commit()
 
-    def can(self, permissions):
-        role_permissions = reduce(lambda x, y:x.permissions|y.permissions, UserRoleRelation.query.filter(UserRoleRelation.user_id == self.id).all())
-        return self.role is not None and ((role_permissions | self.permissions) & permissions) == permissions
+    def can(self, permission_name):
+        if isinstance(permission_name, list):
+            return all([self.can(p) for p in permission_name])
+        permission_id = Permission.query.filter(Permission.name == permission_name).first().id
+        return permission_id in self.show_permissions_id() or any([role.can(permission_id) for role in Role.query.filter(Role.id.in_(self.show_roles_id())).all()])
 
     def is_administrator(self):
         return self.can(Permission.ADMINISTER)
@@ -97,34 +99,62 @@ class Role(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64), unique=True)
     default = db.Column(db.Boolean, default=False, index=True)
-    permissions = db.Column(db.Integer)
 
-    def add_permissions(self, permissions):
-        for permission in permissions:
-            if permission != Permission.ADMINISTER:
-                self.permissions |= permission
+    def show_permission_id(self):
+        return [relation.permission_id for relation in RolePermissionRelation.query.filter(RolePermissionRelation.role_id == self.id).all()]
 
-    def del_permissions(self, permissions):
-        for permission in permissions:
-            if permission != Permission.ADMINISTER and self.permissions | permission == self.permissions:
-                self.permissions ^= permission
+    def set_permissions(self, permissions_id):
+        RolePermissionRelation.query.filter(RolePermissionRelation.role_id == self.id).delete()
+        relation_to_add = [RolePermissionRelation(role_id=self.id, permission_id=permission_id) for permission_id in permissions_id]
+        db.session.add_all(relation_to_add)
+        db.session.commit()
+
+    def can(self, permission_name):
+        if isinstance(permission_name, list):
+            return all([self.can(p) for p in permission_name])
+        permission_id = Permission.query.filter(Permission.name == permission_name).first().id
+        return permission_id in self.show_permissions_id()
 
     @staticmethod
     def insert_roles():
         roles = {
-            'User': (Permission.FOLLOW | Permission.COMMENT | Permission.WRITE_ARTICLES, True),
-            'Moderator': (Permission.FOLLOW | Permission.COMMENT | Permission.WRITE_ARTICLES | Permission.MODERATE_COMMENTS, False),
+            'User': ([Permission.FOLLOW, Permission.COMMENT, Permission.WRITE_ARTICLES], True),
+            'Moderator': ([Permission.FOLLOW, Permission.COMMENT, Permission.WRITE_ARTICLES, Permission.MODERATE_COMMENTS], False),
             'Administrator': (Permission.ADMINISTER, False)
         }
 
         for r in roles:
             role = Role.query.filter(Role.name == r).first()
-        if role is None:
-            role = Role(name=r)
-        role.permissions = roles[r][0]
-        role.default = roles[r][1]
-        db.session.add(role)
-        db.session.commit()
+            if role is None:
+                role = Role(name=r)
+            role.default = roles[r][1]
+            db.session.add(role)
+            db.session.commit()
+            permissions = roles[r][0]
+            permissions_id = [permission.id for permission in Permission.query.filter(Permission.name.in_(permissions)).all()]
+            role.set_permissions(permissions_id)
+
+
+class Permission(db.Model):
+    __tablename__ = 'permission'
+    FOLLOW = "FOLLOW"
+    COMMENT = "COMMENT"
+    WRITE_ARTICLES = "WRITE_ARTICLES"
+    MODERATE_COMMENTS = "MODERATE_COMMENTS"
+    ADMINISTER = "ADMINISTER"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(64), unique=True)
+
+    @staticmethod
+    def insert_permissions():
+        permissions = [Permission.FOLLOW, Permission.COMMENT, Permission.WRITE_ARTICLES, Permission.MODERATE_COMMENTS, Permission.ADMINISTER]
+        for p in permissions:
+            permission = Permission.query.filter(Role.name == p).first()
+            if permission is None:
+                permission = Permission(name=p)
+            db.session.add(permission)
+            db.session.commit()
 
 
 class UserRoleRelation(db.Model):
@@ -137,15 +167,24 @@ class UserRoleRelation(db.Model):
         self.user_id = user_id
         self.role_id = role_id
 
-    def __init__(self, user, role):
-        self.user_id = user.id
-        self.role_id = role.id
+
+class UserPermissionRelation(db.Model):
+    __tablename__ = 'user_permission_relation'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer)
+    permission_id = db.Column(db.Integer)
+
+    def __init__(self, user_id, permission_id):
+        self.user_id = user_id
+        self.role_id = permission_id
 
 
-class Permission(db.Model):
-    __tablename__ = 'permission'
-    FOLLOW = 1 << 0
-    COMMENT = 1 << 1
-    WRITE_ARTICLES = 1 << 2
-    MODERATE_COMMENTS = 1 << 3
-    ADMINISTER = 0xff
+class RolePermissionRelation(db.Model):
+    __tablename__ = 'role_permission_relation'
+    id = db.Column(db.Integer, primary_key=True)
+    role_id = db.Column(db.Integer)
+    permission_id = db.Column(db.Integer)
+
+    def __init__(self, role_id, permission_id):
+        self.user_id = role_id
+        self.role_id = permission_id

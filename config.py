@@ -6,6 +6,9 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 
 class Config(object):
+    DEV = False
+    TEST = False
+    PROD = False
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     @staticmethod
@@ -14,6 +17,7 @@ class Config(object):
 
 
 class DevelopmentConfig(Config):
+    DEV = True
     DEBUG = True
     FLASK_ADMIN = 'downwargers@163.com'
     SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'data.sqlite')
@@ -21,11 +25,13 @@ class DevelopmentConfig(Config):
 
 
 class TestingConfig(Config):
+    TEST = True
     cfg_file_name = 'blog_test_cfg.json'
     pass
 
 
 class ProductionConfig(Config):
+    PROD = True
     pass
 
 
