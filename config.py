@@ -20,6 +20,8 @@ class DevelopmentConfig(Config):
     DEV = True
     DEBUG = True
     FLASK_ADMIN = 'downwargers@163.com'
+    MAIL_SUBJECT_PREFIX = '[Simple and Naive]'
+    MAIL_SENDER = 'Simple and Naive Admin <downwargers@163.com>'
     SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'data.sqlite')
     cfg_file_name = 'blog_dev_cfg.json'
 

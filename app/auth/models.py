@@ -48,6 +48,7 @@ class User(UserMixin, db.Model):
             return False
         self.confirmed = True
         db.session.add(self)
+        db.session.commit()
         return True
 
     def show_roles_id(self):
@@ -136,7 +137,7 @@ class Role(db.Model):
 
 
 class Permission(db.Model):
-    __tablename__ = 'permission'
+    __tablename__ = 'permissions'
     FOLLOW = "FOLLOW"
     COMMENT = "COMMENT"
     WRITE_ARTICLES = "WRITE_ARTICLES"
@@ -186,5 +187,5 @@ class RolePermissionRelation(db.Model):
     permission_id = db.Column(db.Integer)
 
     def __init__(self, role_id, permission_id):
-        self.user_id = role_id
-        self.role_id = permission_id
+        self.role_id = role_id
+        self.permission_id = permission_id

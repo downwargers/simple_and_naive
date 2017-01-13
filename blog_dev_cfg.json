@@ -1,5 +1,8 @@
 {
     "SECRET_KEY":"secret-key",
+    "MAIL_SERVER":"smtp.163.com",
+    "MAIL_USERNAME":"downwargers",
+    "MAIL_PASSWORD":"code201701131620",
     "logging": {
         "debug": "true",
         "log_level": "DEBUG",

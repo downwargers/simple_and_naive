@@ -5,6 +5,7 @@ from flask.ext.script import Manager, Server, Shell
 from flask.ext.migrate import Migrate, MigrateCommand
 from app import create_app, db
 from app.auth.models import User, Role, Permission
+from app.auth.forms import RegistrationForm
 
 
 app = create_app(__name__)
@@ -23,16 +24,25 @@ manager.add_command("server", Server())
 def create_administrator():
     print "####### CREATE ADMINISTRATOR #######"
     username = raw_input("Username (leave blank to use 'administrator'):") or "administrator"
-    email = raw_input("Email address:")
+    email = raw_input("Email address (leave blank to use '" + app.config['FLASK_ADMIN'] + "'):") or app.config['FLASK_ADMIN']
     password = raw_input("Password:")
     re_password = raw_input("Password (again):")
-    if password == re_password:
-        user = User(email=email, username=username, password=password)
+    form = RegistrationForm(meta={"csrf": False})
+    form.email.data = email
+    form.username.data = username
+    form.password.data = password
+    form.password2.data = re_password
+
+    print form
+    print form.validate()
+    if form.validate():
+        user = User(email=email, username=username, password=password, confirmed=True)
         db.session.add(user)
         db.session.commit()
-        print "Superuser created successfully."
+        print "Administrator created successfully."
     else:
-        print "The two password are not same!"
+        print form.errors
+        print "Fail to create Administrator!"
 
 
 @manager.command
