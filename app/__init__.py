@@ -2,7 +2,7 @@
 # -*- coding:utf-8 -*-
 from flask import Flask
 from config import config
-from extensions import db, moment, bootstrap, mail, login_manager
+from extensions import db, moment, bootstrap, mail, login_manager, pagedown
 from .auth import auth as auth_blueprint
 from .main import main as main_blueprint
 from log import logger, init_logging
@@ -26,6 +26,7 @@ def create_app(name, config_name='development'):
     moment.init_app(app)
     db.init_app(app)
     login_manager.init_app(app)
+    pagedown.init_app(app)
 
     app.register_blueprint(auth_blueprint, url_prefix='/auth')
     app.register_blueprint(main_blueprint, url_prefix='')

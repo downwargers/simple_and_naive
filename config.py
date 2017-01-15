@@ -10,6 +10,7 @@ class Config(object):
     TEST = False
     PROD = False
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    POSTS_PER_PAGE = 15
 
     @staticmethod
     def init_app(app):

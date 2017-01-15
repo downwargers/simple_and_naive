@@ -26,4 +26,6 @@
             Edit Profile
         </a>
     {% endif %}
+    <h3>Posts by {{ user.username }}</h3>
+    {% include 'main/_posts.html' %}
 {% endblock %}
