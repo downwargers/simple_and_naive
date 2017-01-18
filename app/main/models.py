@@ -19,10 +19,14 @@ class Post(db.Model):
     author_id = db.Column(db.Integer)
     body_html = db.Column(db.Text)
 
-    def with_author(self):
-        author = User.query.filter(User.id == self.author_id).first()
-        self.author = author
-        return self
+    @property
+    def author(self):
+        return User.query.filter(User.id == self.author_id).first()
+
+    @author.setter
+    def author(self, val):
+        self.author = val.id
+        db.session.commit()
 
     @staticmethod
     def on_changed_body(target, value, oldvalue, initiator):

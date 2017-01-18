@@ -6,6 +6,7 @@ from flask.ext.login import UserMixin, AnonymousUserMixin
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from flask import current_app
 from datetime import datetime
+from ..tools import ManyToMany
 
 
 class User(UserMixin, db.Model):
@@ -19,9 +20,13 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(128))
     confirmed = db.Column(db.Boolean, default=False)
 
+    roles = ManyToMany(db, Role, UserRoleRelation, 'user_id', 'role_id')
+    permissions = ManyToMany(db, Permission, UserPermissionRelation, 'user_id', 'permission_id')
+
     def ping(self):
         self.last_seen = datetime.utcnow()
         db.session.add(self)
+        self.posts.append()
 
     @property
     def password(self):
@@ -51,30 +56,11 @@ class User(UserMixin, db.Model):
         db.session.commit()
         return True
 
-    def show_roles_id(self):
-        return [relation.role_id for relation in UserRoleRelation.query.filter(UserRoleRelation.user_id == self.id).all()]
-
-    def set_roles(self, roles_id):
-        UserRoleRelation.query.filter(UserRoleRelation.user_id == self.id).delete()
-        relation_to_add = [UserRoleRelation(user_id=self.id, role_id=role_id) for role_id in roles_id]
-        db.session.add_all(relation_to_add)
-        db.session.commit()
-
-    def show_permissions_id(self):
-        return [relation.permission_id for relation in UserPermissionRelation.query.filter(UserPermissionRelation.user_id == self.id).all()]
-
-    def set_permissions(self, permissions_id):
-        UserPermissionRelation.query.filter(UserPermissionRelation.user_id == self.id).delete()
-        permission_administer_id = Permission.query.filter(Permission.name == Permission.ADMINISTER).first().id
-        relation_to_add = [UserPermissionRelation(user_id=self.id, permission_id=permission_id) for permission_id in permissions_id if permission_id != permission_administer_id]
-        db.session.add_all(relation_to_add)
-        db.session.commit()
-
     def can(self, permission_name):
         if isinstance(permission_name, list):
             return all([self.can(p) for p in permission_name])
         permission_id = Permission.query.filter(Permission.name == permission_name).first().id
-        return permission_id in self.show_permissions_id() or any([role.can(permission_id) for role in Role.query.filter(Role.id.in_(self.show_roles_id())).all()])
+        return permission_id in [permission.id for permission in self.permissions.all()] or any([role.can(permission_id) for role in self.roles.all()])
 
     def is_administrator(self):
         return self.can(Permission.ADMINISTER)
@@ -101,20 +87,13 @@ class Role(db.Model):
     name = db.Column(db.String(64), unique=True)
     default = db.Column(db.Boolean, default=False, index=True)
 
-    def show_permission_id(self):
-        return [relation.permission_id for relation in RolePermissionRelation.query.filter(RolePermissionRelation.role_id == self.id).all()]
-
-    def set_permissions(self, permissions_id):
-        RolePermissionRelation.query.filter(RolePermissionRelation.role_id == self.id).delete()
-        relation_to_add = [RolePermissionRelation(role_id=self.id, permission_id=permission_id) for permission_id in permissions_id]
-        db.session.add_all(relation_to_add)
-        db.session.commit()
+    permissions = ManyToMany(db, Permission, RolePermissionRelation, 'role_id', 'permission_id')
 
     def can(self, permission_name):
         if isinstance(permission_name, list):
             return all([self.can(p) for p in permission_name])
         permission_id = Permission.query.filter(Permission.name == permission_name).first().id
-        return permission_id in self.show_permissions_id()
+        return permission_id in [permission.id for permission in self.permissions.all()]
 
     @staticmethod
     def insert_roles():
@@ -133,7 +112,8 @@ class Role(db.Model):
             db.session.commit()
             permissions = roles[r][0]
             permissions_id = [permission.id for permission in Permission.query.filter(Permission.name.in_(permissions)).all()]
-            role.set_permissions(permissions_id)
+            role.permissions = permissions_id
+            db.session.commit()
 
 
 class Permission(db.Model):

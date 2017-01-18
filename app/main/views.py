@@ -14,13 +14,12 @@ from ..auth.models import User, Role, Permission
 def index():
     form = PostForm()
     if current_user.can(Permission.WRITE_ARTICLES) and form.validate_on_submit():
-        post = Post(body=form.body.data, author=current_user.id)
+        post = Post(body=form.body.data, author=current_user)
         db.session.add(post)
         return redirect(url_for('.index'))
     page = request.args.get('page', 1, type=int)
     pagination = Post.query.order_by(Post.timestamp.desc()).paginate(page, per_page=current_app.config['POSTS_PER_PAGE'], error_out=False)
     posts = pagination.items
-    posts = [post.with_author() for post in posts]
     return render_template('index.html', form=form, posts=posts, pagination=pagination)
 
 
@@ -30,7 +29,6 @@ def user(username):
     if user is None:
         abort(404)
     posts = Post.query.filter(Post.author_id == user.id).order_by(Post.timestamp.desc()).all()
-    posts = [post.with_author() for post in posts]
     return render_template('main/user.html', user=user, posts=posts)
 
 
@@ -44,7 +42,8 @@ def edit_profile_admin(id):
         user.email = form.email.data
         user.username = form.username.data
         user.confirmed = form.confirmed.data
-        user.set_roles(form.role.data)
+        user.roles = form.role.data
+        user.permissions = form.permissions.data
         user.about_me = form.about_me.data
         db.session.add(user)
         db.session.commit()
@@ -53,7 +52,8 @@ def edit_profile_admin(id):
     form.email.data = user.email
     form.username.data = user.username
     form.confirmed.data = user.confirmed
-    form.role.data = user.show_roles_id()
+    form.roles.data = user.roles
+    form.permissions.data = user.permissions
     form.about_me.data = user.about_me
     return render_template('edit_profile.html', form=form, user=user)
 

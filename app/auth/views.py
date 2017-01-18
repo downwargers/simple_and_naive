@@ -37,7 +37,7 @@ def register():
         user = User(email=form.email.data, username=form.username.data, password=form.password.data)
         db.session.add(user)
         db.session.commit()
-        user.set_roles([Role.query.filter(Role.default is True).id])
+        user.roles = [Role.query.filter(Role.default is True).id]
         db.session.commit()
         token = user.generate_confirmation_token()
         send_email(user.email, 'Confirm Your Account', 'auth/email/confirm', user=user, token=token)

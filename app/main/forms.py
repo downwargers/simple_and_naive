@@ -22,15 +22,15 @@ class EditProfileAdminForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired(), Length(1, 64), Email()])
     username = StringField('Username', validators=[DataRequired(), Length(1, 64), Regexp('^[A-Za-z][A-Za-z0-9_.]*$', 0, 'Usernames must have only letters, numbers, dots or underscores')])
     confirmed = BooleanField('Confirmed')
-    role = SelectMultipleField('Role', coerce=int, option_widget=CheckboxInput)
-    permission = SelectMultipleField('Permission', coerce=int, option_widget=CheckboxInput)
+    roles = SelectMultipleField('Role', coerce=int, option_widget=CheckboxInput)
+    permissions = SelectMultipleField('Permission', coerce=int, option_widget=CheckboxInput)
     about_me = TextAreaField('About me')
     submit = SubmitField('Submit')
 
     def __init__(self, user, *args, **kwargs):
         super(EditProfileAdminForm, self).__init__(*args, **kwargs)
-        self.role.choices = [(role.id, role.name) for role in Role.query.order_by(Role.name).all()]
-        self.permission.choices = [(permission.id, permission.name) for permission in Permission.query.order_by(Permission.name).all()]
+        self.roles.choices = [(role.id, role.name) for role in Role.query.order_by(Role.name).all()]
+        self.permissions.choices = [(permission.id, permission.name) for permission in Permission.query.order_by(Permission.name).all()]
         self.user = user
 
     def validate_email(self, field):
