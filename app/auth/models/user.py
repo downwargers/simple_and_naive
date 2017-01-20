@@ -6,7 +6,7 @@ from flask.ext.login import UserMixin, AnonymousUserMixin
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from flask import current_app
 from datetime import datetime
-from ...tools import ManyToMany
+from ...tools import ManyToMany, standardize_instance
 from .role import Role
 from .permission import Permission
 from .relations import UserPermissionRelation, UserRoleRelation
@@ -24,7 +24,56 @@ class User(UserMixin, db.Model):
     confirmed = db.Column(db.Boolean, default=False)
 
     roles = ManyToMany(db, Role, UserRoleRelation, 'user_id', 'role_id')
+
+    def append_roles(self, role_ids_to_add):
+        relations = UserRoleRelation.query.filter(UserRoleRelation.user_id == self.id).all()
+        existed_roles_id = [relation.id for relation in relations]
+        name_id_dict = {role.name: role.id for role in Role.query.all()}
+        if not isinstance(role_ids_to_add, list):
+            role_ids_to_add = [role_ids_to_add]
+        role_ids_to_add = [standardize_instance(role_id_to_add, Role, name_id_dict) for role_id_to_add in role_ids_to_add]
+        role_ids_to_add = [role_id_to_add for role_id_to_add in role_ids_to_add if role_id_to_add and role_id_to_add not in existed_roles_id]
+        relations_to_add = [UserRoleRelation(user_id=self.id, role_id=role_id_to_add) for role_id_to_add in role_ids_to_add]
+        self.db.session.add_all(relations_to_add)
+
+    def delete_roles(self, role_ids_to_del):
+        relations = UserRoleRelation.query.filter(UserRoleRelation.role_id == self.id).all()
+        existed_roles_id = [relation.id for relation in relations]
+        name_id_dict = {role.name: role.id for role in Role.query.all()}
+        if not isinstance(role_ids_to_del, list):
+            role_ids_to_del = [role_ids_to_del]
+
+        role_ids_to_del = [standardize_instance(role_id_to_del, Role, name_id_dict) for role_id_to_del in role_ids_to_del]
+        role_ids_to_del = [role_id_to_del for role_id_to_del in role_ids_to_del if role_id_to_del and role_id_to_del in existed_roles_id]
+        relations_to_del = UserRoleRelation.filter(UserRoleRelation.user_id == self.id).filter(UserRoleRelation.role_id.in_(role_ids_to_del)).all()
+        for relation in relations_to_del:
+            self.db.session.delete(relation)
+
     permissions = ManyToMany(db, Permission, UserPermissionRelation, 'user_id', 'permission_id')
+
+    def append_permissions(self, permission_ids_to_add):
+        relations = UserPermissionRelation.query.filter(UserPermissionRelation.user_id == self.id).all()
+        existed_permissions_id = [relation.id for relation in relations]
+        name_id_dict = {permission.name: permission.id for permission in Permission.query.all()}
+        if not isinstance(permission_ids_to_add, list):
+            permission_ids_to_add = [permission_ids_to_add]
+        permission_ids_to_add = [standardize_instance(permission_id_to_add, Permission, name_id_dict) for permission_id_to_add in permission_ids_to_add]
+        permission_ids_to_add = [permission_id_to_add for permission_id_to_add in permission_ids_to_add if permission_id_to_add and permission_id_to_add not in existed_permissions_id]
+        relations_to_add = [UserPermissionRelation(user_id=self.id, permission_id=permission_id_to_add) for permission_id_to_add in permission_ids_to_add]
+        self.db.session.add_all(relations_to_add)
+
+    def delete_permissions(self, permission_ids_to_del):
+        relations = UserPermissionRelation.query.filter(UserPermissionRelation.permission_id == self.id).all()
+        existed_permissions_id = [relation.id for relation in relations]
+        name_id_dict = {permission.name: permission.id for permission in Permission.query.all()}
+        if not isinstance(permission_ids_to_del, list):
+            permission_ids_to_del = [permission_ids_to_del]
+
+        permission_ids_to_del = [standardize_instance(permission_id_to_del, Permission, name_id_dict) for permission_id_to_del in permission_ids_to_del]
+        permission_ids_to_del = [permission_id_to_del for permission_id_to_del in permission_ids_to_del if permission_id_to_del and permission_id_to_del in existed_permissions_id]
+        relations_to_del = UserPermissionRelation.filter(UserPermissionRelation.user_id == self.id).filter(UserPermissionRelation.permission_id.in_(permission_ids_to_del)).all()
+        for relation in relations_to_del:
+            self.db.session.delete(relation)
 
     def ping(self):
         self.last_seen = datetime.utcnow()
