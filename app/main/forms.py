@@ -1,17 +1,25 @@
 #!/usr/bin/python
 # -*- coding:utf-8 -*-
+from flask.ext.pagedown.fields import PageDownField
 from flask.ext.wtf import FlaskForm
-from wtforms import StringField, SubmitField, TextAreaField, BooleanField, SelectField, SelectMultipleField, ValidationError
+from flask.ext.login import current_user
+from wtforms import StringField, SubmitField, TextAreaField, BooleanField, SelectMultipleField, ValidationError
 from wtforms.validators import Length, DataRequired, Email, Regexp
 from wtforms.widgets import CheckboxInput
-from flask.ext.pagedown.fields import PageDownField
-from ..auth.models import User, Role, Permission
+
+from ..auth.models.user import User
+from ..auth.models.role import Role
+from ..auth.models.permission import Permission
 
 
 class EditProfileForm(FlaskForm):
     username = StringField('User Name', validators=[DataRequired(), Length(1, 64)])
     about_me = TextAreaField('About me')
     submit = SubmitField('Submit')
+
+    def __init__(self, *args, **kwargs):
+        super(EditProfileForm, self).__init__(*args, **kwargs)
+        self.user = current_user
 
     def validate_username(self, field):
         if field.data != self.user.username and User.query.filter_by(username=field.data).first():

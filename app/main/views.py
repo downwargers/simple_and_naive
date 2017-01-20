@@ -2,12 +2,14 @@
 # -*- coding:utf-8 -*-
 from flask import render_template, abort, flash, redirect, url_for, request, current_app
 from flask.ext.login import current_user, login_required
-from ..decoraters import admin_required
-from .. import db
+
+from app.main.models.post import Post
 from . import main
 from .forms import EditProfileForm, EditProfileAdminForm, PostForm
-from .models import Post
-from ..auth.models import User, Role, Permission
+from .. import db
+from ..auth.models.permission import Permission
+from ..auth.models.user import User
+from ..decoraters import admin_required
 
 
 @main.route('/', methods=['GET', 'POST'])
@@ -20,7 +22,7 @@ def index():
     page = request.args.get('page', 1, type=int)
     pagination = Post.query.order_by(Post.timestamp.desc()).paginate(page, per_page=current_app.config['POSTS_PER_PAGE'], error_out=False)
     posts = pagination.items
-    return render_template('index.html', form=form, posts=posts, pagination=pagination)
+    return render_template('main/index.html', form=form, posts=posts, pagination=pagination)
 
 
 @main.route('/user/<username>')
@@ -42,7 +44,7 @@ def edit_profile_admin(id):
         user.email = form.email.data
         user.username = form.username.data
         user.confirmed = form.confirmed.data
-        user.roles = form.role.data
+        user.roles = form.roles.data
         user.permissions = form.permissions.data
         user.about_me = form.about_me.data
         db.session.add(user)
@@ -55,7 +57,7 @@ def edit_profile_admin(id):
     form.roles.data = user.roles
     form.permissions.data = user.permissions
     form.about_me.data = user.about_me
-    return render_template('edit_profile.html', form=form, user=user)
+    return render_template('main/edit_profile.html', form=form, user=user)
 
 
 @main.route('/edit-profile', methods=['GET', 'POST'])
@@ -71,13 +73,13 @@ def edit_profile():
         return redirect(url_for('.user', username=current_user.username))
     form.username.data = current_user.username
     form.about_me.data = current_user.about_me
-    return render_template('edit_profile.html', form=form)
+    return render_template('main/edit_profile.html', form=form)
 
 
 @main.route('/post/<int:id>')
 def post(id):
     post = Post.query.get_or_404(id)
-    return render_template('post.html', posts=[post])
+    return render_template('main/post.html', posts=[post])
 
 
 @main.route('/edit/<int:id>', methods=['GET', 'POST'])
@@ -94,4 +96,4 @@ def edit(id):
         flash('The post has been updated.')
         return redirect(url_for('post', id=post.id))
     form.body.data = post.body
-    return render_template('edit_post.html', form=form)
+    return render_template('main/edit_post.html', form=form)

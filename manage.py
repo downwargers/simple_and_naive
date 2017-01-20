@@ -1,12 +1,15 @@
 #!/usr/bin/python
 # -*- coding:utf-8 -*-
 
-from flask.ext.script import Manager, Server, Shell
 from flask.ext.migrate import Migrate, MigrateCommand
-from app import create_app, db
-from app.auth.models import User, Role, Permission
-from app.auth.forms import RegistrationForm
+from flask.ext.script import Manager, Server, Shell
 
+import app
+from app import create_app, db
+from app.auth.forms import RegistrationForm
+from app.auth.models.user import User
+from app.auth.models.role import Role
+from app.auth.models.permission import Permission
 
 app = create_app(__name__)
 manager = Manager(app)
@@ -17,7 +20,7 @@ def make_shell_context():
     return dict(app=app, db=db, User=User, Role=Role, Permission=Permission)
 manager.add_command("shell", Shell(make_context=make_shell_context))
 manager.add_command('db', MigrateCommand)
-manager.add_command("server", Server())
+manager.add_command("server", Server(host=app.config['HOST'], port=app.config['PORT']))
 
 
 @manager.command
@@ -38,6 +41,8 @@ def create_administrator():
     if form.validate():
         user = User(email=email, username=username, password=password, confirmed=True)
         db.session.add(user)
+        db.session.commit()
+        user.roles.append(Role.ADMINISTRATOR)
         db.session.commit()
         print "Administrator created successfully."
     else:
