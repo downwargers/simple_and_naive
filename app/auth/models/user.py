@@ -9,7 +9,7 @@ from datetime import datetime
 from ...tools import ManyToMany, standardize_instance
 from .role import Role
 from .permission import Permission
-from .relations import UserPermissionRelation, UserRoleRelation
+from .relations import UserPermissionRelation, UserRoleRelation, FollowRelation
 
 
 class User(UserMixin, db.Model):
@@ -74,6 +74,26 @@ class User(UserMixin, db.Model):
         relations_to_del = UserPermissionRelation.filter(UserPermissionRelation.user_id == self.id).filter(UserPermissionRelation.permission_id.in_(permission_ids_to_del)).all()
         for relation in relations_to_del:
             self.db.session.delete(relation)
+
+    followers = ManyToMany(db, User, FollowRelation, 'followee_id', 'follower_id')
+
+    def follow(self, user):
+        if not self.is_following(user):
+            f = Follow(follower=self, followed=user)
+
+    db.session.add(f)
+
+    def unfollow(self, user):
+        f = self.followed.filter_by(followed_id=user.id).first()
+
+    if f:
+        db.session.delete(f)
+
+    def is_following(self, user):
+        return self.followed.filter_by(
+            followed_id=user.id).first() is not None
+
+    def is_followed_by(self, user):
 
     def ping(self):
         self.last_seen = datetime.utcnow()

@@ -34,3 +34,14 @@ class RolePermissionRelation(db.Model):
     def __init__(self, role_id, permission_id):
         self.role_id = role_id
         self.permission_id = permission_id
+
+
+class FollowRelation(db.Model):
+    __tablename__ = 'follow_relation'
+    id = db.Column(db.Integer, primary_key=True)
+    followee_id = db.Column(db.Integer)
+    follower_id = db.Column(db.Integer)
+
+    def __init__(self, followee_id, follower_id):
+        self.followee_id = followee_id
+        self.follower_id = follower_id

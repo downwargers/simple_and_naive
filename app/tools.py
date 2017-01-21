@@ -18,7 +18,7 @@ def standardize_instance(unstandardized_instance, aim_class,  name_id_dict):
 
 
 class ManyToMany(object):
-    def __init__(self, db, classb, class_relation, relation_attribute_a, relation_attribute_b):
+    def a__init__(self, db, classb, class_relation, relation_attribute_a, relation_attribute_b):
         self.db = db
         self.classb = classb
         self.class_relation = class_relation
