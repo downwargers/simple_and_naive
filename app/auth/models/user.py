@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # -*- coding:utf-8 -*-
 from ... import db, login_manager
+from sqlalchemy.ext.declarative import declared_attr
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask.ext.login import UserMixin, AnonymousUserMixin
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
@@ -75,25 +76,29 @@ class User(UserMixin, db.Model):
         for relation in relations_to_del:
             self.db.session.delete(relation)
 
-    followers = ManyToMany(db, User, FollowRelation, 'followee_id', 'follower_id')
+    @declared_attr
+    def followers(cls):
+        return ManyToMany(db, cls, FollowRelation, 'followee_id', 'follower_id')
+
+    @declared_attr
+    def followees(cls):
+        return ManyToMany(db, cls, FollowRelation, 'follower_id', 'followee_id')
 
     def follow(self, user):
         if not self.is_following(user):
-            f = Follow(follower=self, followed=user)
-
-    db.session.add(f)
+            f = FollowRelation(follower_id=self.id, followee_id=user.id)
+            db.session.add(f)
 
     def unfollow(self, user):
-        f = self.followed.filter_by(followed_id=user.id).first()
-
-    if f:
-        db.session.delete(f)
+        f = self.followed.filter(FollowRelation.follower_id==user.id).first()
+        if f:
+            db.session.delete(f)
 
     def is_following(self, user):
-        return self.followed.filter_by(
-            followed_id=user.id).first() is not None
+        return self.followed.filter(FollowRelation.follower_id==user.id).first() is not None
 
     def is_followed_by(self, user):
+        return self.followers.filter(FollowRelation.followee_id==user.id).first() is not None
 
     def ping(self):
         self.last_seen = datetime.utcnow()
