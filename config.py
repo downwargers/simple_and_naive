@@ -11,6 +11,7 @@ class Config(object):
     PROD = False
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     POSTS_PER_PAGE = 15
+    FOLLOWERS_PER_PAGE = 20
 
     @staticmethod
     def init_app(app):
