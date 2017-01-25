@@ -22,5 +22,5 @@ class Permission(db.Model):
             if permission is None:
                 permission = Permission(name=p)
             db.session.add(permission)
-            db.session.commit()
+        db.session.commit()
 

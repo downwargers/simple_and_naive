@@ -24,81 +24,86 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(128))
     confirmed = db.Column(db.Boolean, default=False)
 
-    roles = ManyToMany(db, Role, UserRoleRelation, 'user_id', 'role_id')
+    posts = db.relationship('Post', backref='author', lazy='dynamic')
 
-    def append_roles(self, role_ids_to_add):
-        relations = UserRoleRelation.query.filter(UserRoleRelation.user_id == self.id).all()
-        existed_roles_id = [relation.id for relation in relations]
-        name_id_dict = {role.name: role.id for role in Role.query.all()}
-        if not isinstance(role_ids_to_add, list):
-            role_ids_to_add = [role_ids_to_add]
-        role_ids_to_add = [standardize_instance(role_id_to_add, Role, name_id_dict) for role_id_to_add in role_ids_to_add]
-        role_ids_to_add = [role_id_to_add for role_id_to_add in role_ids_to_add if role_id_to_add and role_id_to_add not in existed_roles_id]
-        relations_to_add = [UserRoleRelation(user_id=self.id, role_id=role_id_to_add) for role_id_to_add in role_ids_to_add]
-        self.db.session.add_all(relations_to_add)
+    roles = db.relationship('Role', secondary='user_role_relation', backref=db.backref('users', lazy='dynamic'), lazy='dynamic')
 
-    def delete_roles(self, role_ids_to_del):
-        relations = UserRoleRelation.query.filter(UserRoleRelation.role_id == self.id).all()
-        existed_roles_id = [relation.id for relation in relations]
-        name_id_dict = {role.name: role.id for role in Role.query.all()}
-        if not isinstance(role_ids_to_del, list):
-            role_ids_to_del = [role_ids_to_del]
+    def append_role(self, role_names):
+        if not isinstance(role_names, list):
+            role_names = [role_names]
+        roles = {role.name: role for role in Role.query.all()}
+        for role_name in role_names:
+            if isinstance(role_name, Role):
+                role = role_name
+            else:
+                role = roles.get(role_name)
+            if role:
+                self.roles.append(role)
+        db.session.add(self)
 
-        role_ids_to_del = [standardize_instance(role_id_to_del, Role, name_id_dict) for role_id_to_del in role_ids_to_del]
-        role_ids_to_del = [role_id_to_del for role_id_to_del in role_ids_to_del if role_id_to_del and role_id_to_del in existed_roles_id]
-        relations_to_del = UserRoleRelation.filter(UserRoleRelation.user_id == self.id).filter(UserRoleRelation.role_id.in_(role_ids_to_del)).all()
-        for relation in relations_to_del:
-            self.db.session.delete(relation)
+    def remove_roles(self, role_names):
+        if role_names == 'all':
+            role_names = self.roles.all()
+        if not isinstance(role_names, list):
+            role_names = [role_names]
+        roles = {role.name: role for role in self.roles.all()}
+        for role_name in role_names:
+            if isinstance(role_name, Role):
+                role = role_name
+            else:
+                role = roles.get(role_name)
+            if role in self.roles:
+                self.roles.append(role)
+        db.session.add(self)
 
-    permissions = ManyToMany(db, Permission, UserPermissionRelation, 'user_id', 'permission_id')
+    permissions = db.relationship('Permission', secondary='user_permission_relation', backref=db.backref('users', lazy='dynamic'), lazy='dynamic')
 
-    def append_permissions(self, permission_ids_to_add):
-        relations = UserPermissionRelation.query.filter(UserPermissionRelation.user_id == self.id).all()
-        existed_permissions_id = [relation.id for relation in relations]
-        name_id_dict = {permission.name: permission.id for permission in Permission.query.all()}
-        if not isinstance(permission_ids_to_add, list):
-            permission_ids_to_add = [permission_ids_to_add]
-        permission_ids_to_add = [standardize_instance(permission_id_to_add, Permission, name_id_dict) for permission_id_to_add in permission_ids_to_add]
-        permission_ids_to_add = [permission_id_to_add for permission_id_to_add in permission_ids_to_add if permission_id_to_add and permission_id_to_add not in existed_permissions_id]
-        relations_to_add = [UserPermissionRelation(user_id=self.id, permission_id=permission_id_to_add) for permission_id_to_add in permission_ids_to_add]
-        self.db.session.add_all(relations_to_add)
+    def append_permission(self, permission_names):
+        if not isinstance(permission_names, list):
+            permission_names = [permission_names]
+        permissions = {permission.name: permission for permission in Permission.query.all()}
+        for permission_name in permission_names:
+            if isinstance(permission_name, Permission):
+                permission = permission_name
+            else:
+                permission = permissions.get(permission_name)
+            if permission:
+                self.permissions.append(permission)
+        db.session.add(self)
 
-    def delete_permissions(self, permission_ids_to_del):
-        relations = UserPermissionRelation.query.filter(UserPermissionRelation.permission_id == self.id).all()
-        existed_permissions_id = [relation.id for relation in relations]
-        name_id_dict = {permission.name: permission.id for permission in Permission.query.all()}
-        if not isinstance(permission_ids_to_del, list):
-            permission_ids_to_del = [permission_ids_to_del]
+    def remove_permissions(self, permission_names):
+        if permission_names == 'all':
+            permission_names = self.permissions.all()
+        if not isinstance(permission_names, list):
+            permission_names = [permission_names]
+        permissions = {permission.name: permission for permission in self.permissions.all()}
+        for permission_name in permission_names:
+            if isinstance(permission_name, Permission):
+                permission = permission_name
+            else:
+                permission = permissions.get(permission_name)
+            if permission in self.permissions:
+                self.permissions.append(permission)
+        db.session.add(self)
 
-        permission_ids_to_del = [standardize_instance(permission_id_to_del, Permission, name_id_dict) for permission_id_to_del in permission_ids_to_del]
-        permission_ids_to_del = [permission_id_to_del for permission_id_to_del in permission_ids_to_del if permission_id_to_del and permission_id_to_del in existed_permissions_id]
-        relations_to_del = UserPermissionRelation.filter(UserPermissionRelation.user_id == self.id).filter(UserPermissionRelation.permission_id.in_(permission_ids_to_del)).all()
-        for relation in relations_to_del:
-            self.db.session.delete(relation)
-
-    @declared_attr
-    def followers(cls):
-        return ManyToMany(db, cls, FollowRelation, 'followee_id', 'follower_id')
-
-    @declared_attr
-    def followees(cls):
-        return ManyToMany(db, cls, FollowRelation, 'follower_id', 'followee_id')
+    followers = db.relationship('FollowRelation', foreign_keys=[FollowRelation.followee_id], backref=db.backref('followee', lazy='joined'), lazy='dynamic', cascade='all, delete-orphan')
+    followees = db.relationship('FollowRelation', foreign_keys=[FollowRelation.follower_id], backref=db.backref('follower', lazy='joined'), lazy='dynamic', cascade='all, delete-orphan')
 
     def follow(self, user):
         if not self.is_following(user):
-            f = FollowRelation(follower_id=self.id, followee_id=user.id)
+            f = FollowRelation(follower=self, followee=user)
             db.session.add(f)
 
     def unfollow(self, user):
-        f = self.followed.filter(FollowRelation.follower_id==user.id).first()
+        f = self.followees.filter(FollowRelation.follower_id == user.id).first()
         if f:
             db.session.delete(f)
 
     def is_following(self, user):
-        return self.followed.filter(FollowRelation.follower_id==user.id).first() is not None
+        return self.followees.filter(FollowRelation.follower_id == user.id).first() is not None
 
     def is_followed_by(self, user):
-        return self.followers.filter(FollowRelation.followee_id==user.id).first() is not None
+        return self.followers.filter(FollowRelation.followee_id == user.id).first() is not None
 
     def ping(self):
         self.last_seen = datetime.utcnow()
@@ -135,8 +140,8 @@ class User(UserMixin, db.Model):
     def can(self, permission_name):
         if isinstance(permission_name, list):
             return all([self.can(p) for p in permission_name])
-        permission_id = Permission.query.filter(Permission.name == permission_name).first().id
-        return permission_id in [permission.id for permission in self.permissions.all()] or any([role.can(permission_id) for role in self.roles.all()])
+        a = permission_name in [permission.name for permission in self.permissions.all()] or any([role.can(permission_name) for role in self.roles.all()])
+        return a
 
     def is_administrator(self):
         return self.can(Permission.ADMINISTER)

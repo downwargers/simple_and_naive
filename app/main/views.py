@@ -16,7 +16,7 @@ from ..decoraters import admin_required
 def index():
     form = PostForm()
     if current_user.can(Permission.WRITE_ARTICLES) and form.validate_on_submit():
-        post = Post(body=form.body.data, author=current_user)
+        post = Post(body=form.body.data, author=current_user._get_current_object())
         db.session.add(post)
         return redirect(url_for('.index'))
     page = request.args.get('page', 1, type=int)
@@ -54,8 +54,8 @@ def edit_profile_admin(id):
     form.email.data = user.email
     form.username.data = user.username
     form.confirmed.data = user.confirmed
-    form.roles.data = user.roles
-    form.permissions.data = user.permissions
+    form.roles.data = user.roles.all()
+    form.permissions.data = user.permissions.all()
     form.about_me.data = user.about_me
     return render_template('main/edit_profile.html', form=form, user=user)
 

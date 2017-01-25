@@ -24,7 +24,7 @@ class DevelopmentConfig(Config):
     MAIL_SUBJECT_PREFIX = '[Simple and Naive]'
     MAIL_SENDER = 'Simple and Naive Admin <downwargers@163.com>'
     SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'data.sqlite')
-    HOST = '172.24.176.97'
+    HOST = '127.0.0.1'
     PORT = 5000
     cfg_file_name = 'blog_dev_cfg.json'
 

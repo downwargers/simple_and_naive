@@ -40,9 +40,8 @@ def create_administrator():
     print form.validate()
     if form.validate():
         user = User(email=email, username=username, password=password, confirmed=True)
+        user.append_role(Role.ADMINISTRATOR)
         db.session.add(user)
-        db.session.commit()
-        user.roles.append(Role.ADMINISTRATOR)
         db.session.commit()
         print "Administrator created successfully."
     else:
