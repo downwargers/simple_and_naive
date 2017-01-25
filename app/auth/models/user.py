@@ -8,6 +8,7 @@ from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from flask import current_app
 from datetime import datetime
 from ...tools import ManyToMany, standardize_instance
+from ...main.models.post import Post
 from .role import Role
 from .permission import Permission
 from .relations import UserPermissionRelation, UserRoleRelation, FollowRelation
@@ -104,6 +105,10 @@ class User(UserMixin, db.Model):
 
     def is_followed_by(self, user):
         return self.followers.filter(FollowRelation.followee_id == user.id).first() is not None
+
+    @property
+    def followed_posts(self):
+        return Post.query.join(FollowRelation, FollowRelation.followee_id == Post.author_id).filter(FollowRelation.follower_id == self.id)
 
     def ping(self):
         self.last_seen = datetime.utcnow()

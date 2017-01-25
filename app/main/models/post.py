@@ -5,7 +5,7 @@ from datetime import datetime
 import bleach
 from markdown import markdown
 
-from app.auth.models.user import User
+from ...auth.models.user import User
 from app import db
 
 
