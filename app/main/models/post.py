@@ -12,14 +12,18 @@ from app import db
 class Post(db.Model):
     __tablename__ = 'posts'
     id = db.Column(db.Integer, primary_key=True)
-    body = db.Column(db.Text)
+    body = db.Column(db.text)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     author_id = db.Column(db.Integer, db.ForeignKey('users.id'))
-    body_html = db.Column(db.Text)
+    alive = db.Column(db.Boolean, default=True)
 
-    @staticmethod
-    def on_changed_body(target, value, oldvalue, initiator):
-        allowed_tags = ['a', 'abbr', 'acronym', 'b', 'blockquote', 'code', 'em', 'i', 'li', 'ol', 'pre', 'strong', 'ul', 'h1', 'h2', 'h3', 'p']
-        target.body_html = bleach.linkify(bleach.clean(markdown(value, output_format='html'), tags=allowed_tags, strip=True))
+    def to_json(self):
+        json_dict = {''}
+        json_dict['id'] = self.id
+        json_dict['body'] = self.body
+        json_dict['timestamp'] = self.timestamp
+        json_dict['author_id'] = self.author_id
+        json_dict['author'] = self.author.to_json()
+        return json_dict
 
 db.event.listen(Post.body, 'set', Post.on_changed_body)

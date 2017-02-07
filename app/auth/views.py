@@ -21,7 +21,7 @@ def login():
             user = User.query.filter_by(email=request_info.get('email')).first()
             if user is not None and user.verify_password(request_info.get('password')):
                 login_user(user, request_info.get('remember_me', False))
-                json_str = {'status': 'success', 'message': 'You have been logged in successfully!', 'result': {'email': user.email, 'username':user.username, 'remember_me': request_info.get('remember_me', False)}}
+                json_str = {'status': 'success', 'message': 'You have been logged in successfully!', 'result': {'user':user.to_json(), 'remember_me': request_info.get('remember_me', False)}}
                 return jsonify(json_str)
         json_str = {'status': 'fail', 'message': 'login unseccessfully'}
         return jsonify(json_str)
@@ -52,7 +52,7 @@ def register():
                 db.session.commit()
                 token = user.generate_confirmation_token()
                 send_email(user.email, 'Confirm Your Account', 'auth/email/confirm', user=user, token=token)
-                json_str = {'status': 'success', 'message': 'register successfully!', 'result': {'email':user.email, 'username':user.username}}
+                json_str = {'status': 'success', 'message': 'register successfully!', 'result': {'user':user.to_json()}}
                 return jsonify(json_str)
         abort(500)
     else:

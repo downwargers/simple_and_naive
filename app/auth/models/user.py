@@ -150,6 +150,15 @@ class User(UserMixin, db.Model):
     def is_administrator(self):
         return self.can(Permission.ADMINISTER)
 
+    def to_json(self):
+        json_dict = {''}
+        json_dict['id'] = self.id
+        json_dict['username'] = self.username
+        json_dict['email'] = self.email
+        json_dict['about_me'] = self.about_me
+        json_dict['last_seen'] = self.last_seen
+        return json_dict
+
 
 @login_manager.user_loader
 def load_user(user_id):
