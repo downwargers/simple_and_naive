@@ -7,7 +7,6 @@ from flask.ext.login import UserMixin, AnonymousUserMixin
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from flask import current_app
 from datetime import datetime
-from ...tools import ManyToMany, standardize_instance
 from ...main.models.post import Post
 from .role import Role
 from .permission import Permission
