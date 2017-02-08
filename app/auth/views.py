@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding:utf-8 -*-
-from flask import render_template, redirect, request, url_for, flash, session, abort, jsonify
+from flask import redirect, request, url_for, flash, abort, jsonify
 from flask.ext.login import login_user, logout_user, login_required, current_user
 
 from .models.user import User
@@ -29,6 +29,7 @@ def login():
         csrf_token = apply_csrf_token()
         json_str = {'status': 'success', 'login_require': True, 'message': 'login please', 'result': {'csrf_token': csrf_token}}
         return jsonify(json_str)
+
 
 @auth.route('/logout')
 @login_required

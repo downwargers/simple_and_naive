@@ -1,7 +1,6 @@
 #!/usr/bin/python
 # -*- coding:utf-8 -*-
 from ... import db, login_manager
-from sqlalchemy.ext.declarative import declared_attr
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask.ext.login import UserMixin, AnonymousUserMixin
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
@@ -10,7 +9,7 @@ from datetime import datetime
 from ...main.models.post import Post
 from .role import Role
 from .permission import Permission
-from .relations import UserPermissionRelation, UserRoleRelation, FollowRelation
+from .relations import FollowRelation
 
 
 class User(UserMixin, db.Model):
@@ -28,10 +27,11 @@ class User(UserMixin, db.Model):
 
     roles = db.relationship('Role', secondary='user_role_relation', backref=db.backref('users', lazy='dynamic'), lazy='dynamic')
 
-    def append_role(self, role_names):
+    def set_roles(self, role_names):
         if not isinstance(role_names, list):
             role_names = [role_names]
         roles = {role.name: role for role in Role.query.all()}
+        self.clear_roles()
         for role_name in role_names:
             if isinstance(role_name, Role):
                 role = role_name
@@ -41,27 +41,17 @@ class User(UserMixin, db.Model):
                 self.roles.append(role)
         db.session.add(self)
 
-    def remove_roles(self, role_names):
-        if role_names == 'all':
-            role_names = self.roles.all()
-        if not isinstance(role_names, list):
-            role_names = [role_names]
-        roles = {role.name: role for role in self.roles.all()}
-        for role_name in role_names:
-            if isinstance(role_name, Role):
-                role = role_name
-            else:
-                role = roles.get(role_name)
-            if role in self.roles:
-                self.roles.append(role)
+    def clear_roles(self):
+        self.roles.delete()
         db.session.add(self)
 
     permissions = db.relationship('Permission', secondary='user_permission_relation', backref=db.backref('users', lazy='dynamic'), lazy='dynamic')
 
-    def append_permission(self, permission_names):
+    def set_permissions(self, permission_names):
         if not isinstance(permission_names, list):
             permission_names = [permission_names]
         permissions = {permission.name: permission for permission in Permission.query.all()}
+        self.clear_permissions()
         for permission_name in permission_names:
             if isinstance(permission_name, Permission):
                 permission = permission_name
@@ -71,19 +61,8 @@ class User(UserMixin, db.Model):
                 self.permissions.append(permission)
         db.session.add(self)
 
-    def remove_permissions(self, permission_names):
-        if permission_names == 'all':
-            permission_names = self.permissions.all()
-        if not isinstance(permission_names, list):
-            permission_names = [permission_names]
-        permissions = {permission.name: permission for permission in self.permissions.all()}
-        for permission_name in permission_names:
-            if isinstance(permission_name, Permission):
-                permission = permission_name
-            else:
-                permission = permissions.get(permission_name)
-            if permission in self.permissions:
-                self.permissions.append(permission)
+    def clear_permissions(self):
+        self.permissions.delete()
         db.session.add(self)
 
     followers = db.relationship('FollowRelation', foreign_keys=[FollowRelation.followee_id], backref=db.backref('followee', lazy='joined'), lazy='dynamic', cascade='all, delete-orphan')
@@ -144,19 +123,22 @@ class User(UserMixin, db.Model):
     def can(self, permission_name):
         if isinstance(permission_name, list):
             return all([self.can(p) for p in permission_name])
-        a = permission_name in [permission.name for permission in self.permissions.all()] or any([role.can(permission_name) for role in self.roles.all()])
+        a = permission_name in [permission.name for permission in self.permissions.all()] or any([permission.can(permission_name) for role in self.roles.all()])
         return a
 
     def is_administrator(self):
         return self.can(Permission.ADMINISTER)
 
     def to_json(self):
-        json_dict = {''}
+        json_dict = {}
         json_dict['id'] = self.id
         json_dict['username'] = self.username
         json_dict['email'] = self.email
         json_dict['about_me'] = self.about_me
         json_dict['last_seen'] = self.last_seen
+        json_dict['confirmed'] = self.confirmed
+        json_dict['roles'] = [role.name for role in self.roles.all()]
+        json_dict['permissions'] = [permission.name for permission in self.permissions.all()]
         return json_dict
 
 

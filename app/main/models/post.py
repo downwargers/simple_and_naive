@@ -1,11 +1,6 @@
 #!/usr/bin/python
 # -*- coding:utf-8 -*-
 from datetime import datetime
-
-import bleach
-from markdown import markdown
-
-from ...auth.models.user import User
 from app import db
 
 
@@ -18,7 +13,7 @@ class Post(db.Model):
     alive = db.Column(db.Boolean, default=True)
 
     def to_json(self):
-        json_dict = {''}
+        json_dict = {}
         json_dict['id'] = self.id
         json_dict['body'] = self.body
         json_dict['timestamp'] = self.timestamp

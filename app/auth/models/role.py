@@ -1,9 +1,7 @@
 #!/usr/bin/python
 # -*- coding:utf-8 -*-
 from ... import db
-from ...tools import ManyToMany, standardize_instance
 from .permission import Permission
-from .relations import RolePermissionRelation
 
 
 class Role(db.Model):
@@ -18,10 +16,11 @@ class Role(db.Model):
 
     permissions = db.relationship('Permission', secondary='role_permission_relation', backref=db.backref('roles', lazy='dynamic'), lazy='dynamic')
     
-    def append_permission(self, permission_names):
+    def set_permissions(self, permission_names):
         if not isinstance(permission_names, list):
             permission_names = [permission_names]
         permissions = {permission.name: permission for permission in Permission.query.all()}
+        self.clear_permissions()
         for permission_name in permission_names:
             if isinstance(permission_name, Permission):
                 permission = permission_name
@@ -31,19 +30,8 @@ class Role(db.Model):
                 self.permissions.append(permission)
         db.session.add(self)
 
-    def remove_permissions(self, permission_names):
-        if permission_names == 'all':
-            permission_names = self.permissions.all()
-        if not isinstance(permission_names, list):
-            permission_names = [permission_names]
-        permissions = {permission.name: permission for permission in self.permissions.all()}
-        for permission_name in permission_names:
-            if isinstance(permission_name, Permission):
-                permission = permission_name
-            else:
-                permission = permissions.get(permission_name)
-            if permission in self.permissions:
-                self.permissions.append(permission)
+    def clear_permissions(self):
+        self.permissions.delete()
         db.session.add(self)
     
     def can(self, permission_name):
@@ -67,5 +55,5 @@ class Role(db.Model):
             db.session.add(role)
             db.session.commit()
             permissions = roles[r][0]
-            role.append_permission(permissions)
+            role.set_permissions(permissions)
             db.session.commit()

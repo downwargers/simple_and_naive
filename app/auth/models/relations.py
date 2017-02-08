@@ -10,10 +10,6 @@ class UserRoleRelation(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
 
-    '''def __init__(self, user_id, role_id):
-        self.user_id = user_id
-        self.role_id = role_id'''
-
 
 class UserPermissionRelation(db.Model):
     __tablename__ = 'user_permission_relation'
@@ -21,20 +17,12 @@ class UserPermissionRelation(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     permission_id = db.Column(db.Integer, db.ForeignKey('permissions.id'))
 
-    '''def __init__(self, user_id, permission_id):
-        self.user_id = user_id
-        self.role_id = permission_id'''
-
 
 class RolePermissionRelation(db.Model):
     __tablename__ = 'role_permission_relation'
     id = db.Column(db.Integer, primary_key=True)
     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
     permission_id = db.Column(db.Integer, db.ForeignKey('permissions.id'))
-
-    '''def __init__(self, role_id, permission_id):
-        self.role_id = role_id
-        self.permission_id = permission_id'''
 
 
 class FollowRelation(db.Model):

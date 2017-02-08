@@ -1,14 +1,15 @@
 #!/usr/bin/python
 # -*- coding:utf-8 -*-
-from flask import render_template, abort, flash, redirect, url_for, request, current_app, jsonify
+from flask import abort, request, current_app, jsonify
 from flask.ext.login import current_user, login_required
 import json
 
-from app.main.models.post import Post
+from .models.post import Post
 from . import main
 from .forms import check_edit_profile_admin_data, check_edit_profile_data, check_post_data
 from .. import db
 from ..auth.models.permission import Permission
+from ..auth.models.role import Role
 from ..auth.models.user import User
 from ..decoraters import admin_required, permission_required
 from ..tools import apply_csrf_token, check_csrf_token
@@ -54,7 +55,7 @@ def edit_post():
                 post.body = request_info.get('body')
             db.session.add(post)
             db.commit()
-            json_str = {'status': 'success', 'message': 'add post successfully!', 'result': {'post':post.to_json()}}
+            json_str = {'status': 'success', 'message': 'add post successfully!', 'result': {'post': post.to_json()}}
             return jsonify(json_str)
         json_str = {'status': 'fail', 'message': 'add post unseccessfully'}
         return jsonify(json_str)
@@ -76,9 +77,10 @@ def edit_post():
         json_str = {'status': 'success', 'message': 'add or change post please', 'result': {'post': post_content, 'csrf_token': csrf_token}}
         return jsonify(json_str)
 
-@main.route('/user/<username>')
-def get_user(username):
-    user = User.query.filter_by(username=username).first()
+
+@main.route('/user')
+def get_user():
+    user = User.query.filter_by(username=request.args.get('username')).first()
     if user is None:
         abort(404)
     json_str = {'status': 'success', 'message': 'get user successfully', 'result': {'user': user.to_json()}}
@@ -89,101 +91,103 @@ def get_user(username):
 @login_required
 @admin_required
 def edit_profile_admin(id):
-    user = User.query.get_or_404(id)
-    form = EditProfileAdminForm(user=user)
-    if form.validate_on_submit():
-        user.email = form.email.data
-        user.username = form.username.data
-        user.confirmed = form.confirmed.data
-        user.roles = form.roles.data
-        user.permissions = form.permissions.data
-        user.about_me = form.about_me.data
-        db.session.add(user)
-        db.session.commit()
-        flash('The profile has been updated.')
-        return redirect(url_for('.user', username=user.username))
-    form.email.data = user.email
-    form.username.data = user.username
-    form.confirmed.data = user.confirmed
-    form.roles.data = user.roles.all()
-    form.permissions.data = user.permissions.all()
-    form.about_me.data = user.about_me
-    return render_template('main/edit_profile.html', form=form, user=user)
+    user = User.query.filter_by(id=id).first()
+    if not user:
+        json_str = {'status': 'fail', 'message': 'user doesn`t exist!'}
+        return jsonify(json_str)
+    if request.method == 'POST':
+        request_info = json.loads(request.data)
+        if check_csrf_token(request_info.get('csrf_token'), id=id) and check_edit_profile_admin_data(request_info, user):
+            user.email = request_info['email']
+            user.username = request_info['username']
+            user.confirmed = request_info['confirmed']
+            user.set_roles(request_info['roles'])
+            user.set_permissions(request_info['permissions'])
+            user.about_me = request_info['about_me']
+            db.session.add(user)
+            db.session.commit()
+            json_str = {'status': 'success', 'message': 'The profile has been updated.', 'result': {'user': user.to_json()}}
+            return jsonify(json_str)
+    else:
+        csrf_token = apply_csrf_token(id=id)
+        roles = [{'id': role.id, 'name':role.name} for role in Role.query.all()]
+        permissions = [{'id': permission.id, 'name': permission.name} for permission in Permission.query.all()]
+        json_str = {'status': 'success', 'message': 'edit user profile please', 'result': {'user': user.to_json(), 'roles': roles, 'permissions': permissions, 'csrf_token': csrf_token}}
+        return jsonify(json_str)
 
 
 @main.route('/edit-profile', methods=['GET', 'POST'])
 @login_required
 def edit_profile():
-    form = EditProfileForm()
-    if form.validate_on_submit():
-        current_user.username = form.username.data
-        current_user.about_me = form.about_me.data
-        db.session.add(user)
-        db.session.commit()
-        flash('Your profile has been updated.')
-        return redirect(url_for('.user', username=current_user.username))
-    form.username.data = current_user.username
-    form.about_me.data = current_user.about_me
-    return render_template('main/edit_profile.html', form=form)
+    if request.method == 'POST':
+        request_info = json.loads(request.data)
+        if check_csrf_token(request_info.get('csrf_token')) and check_edit_profile_data(request_info):
+            current_user.username = request_info['username']
+            current_user.about_me = request_info['about_me']
+            db.session.add(current_user)
+            db.session.commit()
+            json_str = {'status': 'success', 'message': 'Your profile has been updated.', 'result': {'user': current_user.to_json()}}
+            return jsonify(json_str)
+    else:
+        csrf_token = apply_csrf_token()
+        json_str = {'status': 'success', 'message': 'edit user profile please', 'result': {'user': current_user.to_json(), 'csrf_token': csrf_token}}
+        return jsonify(json_str)    
+    
 
-
-@main.route('/post/<int:id>')
-def post(id):
-    post = Post.query.get_or_404(id)
-    return render_template('main/post.html', posts=[post])
-
-
-@main.route('/edit/<int:id>', methods=['GET', 'POST'])
-@login_required
-def edit(id):
-    post = Post.query.get_or_404(id)
-    if current_user.id != post.author_id and not current_user.can(Permission.ADMINISTER):
-        abort(403)
-    form = PostForm()
-    if form.validate_on_submit():
-        post.body = form.body.data
-        db.session.add(post)
-        db.session.commit()
-        flash('The post has been updated.')
-        return redirect(url_for('post', id=post.id))
-    form.body.data = post.body
-    return render_template('main/edit_post.html', form=form)
-
-@main.route('/follow/<username>')
+@main.route('/follow', methods=['POST'])
 @login_required
 @permission_required(Permission.FOLLOW)
-def follow(username):
-    user = User.query.filter_by(username=username).first()
+def follow():
+    request_info = json.loads(request.data)
+    user = User.query.filter_by(id=request_info.get['id']).first()
     if user is None:
-        flash('Invalid user.')
-        return redirect(url_for('.index'))
+        json_str = {'status': 'fail', 'message': 'Invalid user'}
+        return jsonify(json_str)
     if current_user.is_following(user):
-        flash('You are already following this user.')
-        return redirect(url_for('.user', username=username))
+        json_str = {'status': 'fail', 'message': 'You are already following this user.'}
+        return jsonify(json_str)
     current_user.follow(user)
-    flash('You are now following %s.' % username)
-    return redirect(url_for('.user', username=username))
+    json_str = {'status': 'success', 'message': 'You are now following %s.' % user.username}
+    return jsonify(json_str)
 
 
-@main.route('/followers/<username>')
-def followers(username):
-    user = User.query.filter_by(username=username).first()
+@main.route('/unfollow', methods=['POST'])
+@login_required
+@permission_required(Permission.FOLLOW)
+def unfollow():
+    request_info = json.loads(request.data)
+    user = User.query.filter_by(id=request_info.get['id']).first()
     if user is None:
-        flash('Invalid user.')
-        return redirect(url_for('.index'))
-    page = request.args.get('page', 1, type=int)
-    pagination = user.followers.paginate(page, per_page=current_app.config['FOLLOWERS_PER_PAGE'], error_out=False)
-    follows = [{'user': item.follower, 'timestamp': item.timestamp} for item in pagination.items]
-    return render_template('main/followers.html', user=user, title="Followers of", endpoint='.followers', pagination=pagination, follows=follows)
+        json_str = {'status': 'fail', 'message': 'Invalid user'}
+        return jsonify(json_str)
+    if not current_user.is_following(user):
+        json_str = {'status': 'fail', 'message': 'You haven`t followed this user.'}
+        return jsonify(json_str)
+    current_user.unfollow(user)
+    json_str = {'status': 'success', 'message': 'You don`t following %s any longer.' % user.username}
+    return jsonify(json_str)
 
-
-@main.route('/followees/<username>')
-def followers(username):
-    user = User.query.filter_by(username=username).first()
+@main.route('/followees', methods=['GET'])
+def get_followees():
+    user = User.query.filter_by(id=request.args.get('id', type=int)).first()
     if user is None:
-        flash('Invalid user.')
-        return redirect(url_for('.index'))
+        json_str = {'status': 'fail', 'message': 'Invalid user'}
+        return jsonify(json_str)
     page = request.args.get('page', 1, type=int)
-    pagination = user.followees.paginate(page, per_page=current_app.config['FOLLOWERS_PER_PAGE'], error_out=False)
-    follows = [{'user': item.follower, 'timestamp': item.timestamp} for item in pagination.items]
-    return render_template('main/followers.html', user=user, title="Followed by", endpoint='.followees', pagination=pagination, follows=follows)
+    pagination = user.followees.paginate(page, per_page=current_app.config['followees_PER_PAGE'], error_out=False)
+    followees = [{'user': user.to_json(), 'timestamp': item.timestamp} for item in pagination.items]
+    json_str = {'status': 'success', 'message': 'get followees successfully', 'result': {'followees': followees}}
+    return jsonify(json_str)
+
+
+@main.route('/followees', methods=['GET'])
+def get_followees():
+    user = User.query.filter_by(id=request.args.get('id', type=int)).first()
+    if user is None:
+        json_str = {'status': 'fail', 'message': 'Invalid user'}
+        return jsonify(json_str)
+    page = request.args.get('page', 1, type=int)
+    pagination = user.followees.paginate(page, per_page=current_app.config['followees_PER_PAGE'], error_out=False)
+    followees = [{'user': user.to_json(), 'timestamp': item.timestamp} for item in pagination.items]
+    json_str = {'status': 'success', 'message': 'get followees successfully', 'result': {'followees': followees}}
+    return jsonify(json_str)
