@@ -7,15 +7,19 @@ from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from flask import current_app
 from datetime import datetime
 from ...main.models.post import Post
+from ...main.models.picture import Picture
 from .role import Role
 from .permission import Permission
 from .relations import FollowRelation
+import random
+import string
 
 
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(64), unique=True, index=True)
+    avatar = db.Column(db.String(64), null=True)
     username = db.Column(db.String(64), unique=True, index=True)
     about_me = db.Column(db.Text())
     member_since = db.Column(db.DateTime(), default=datetime.utcnow)
@@ -128,6 +132,14 @@ class User(UserMixin, db.Model):
 
     def is_administrator(self):
         return self.can(Permission.ADMINISTER)
+
+    def set_avatar(self, f):
+        avatar_name = ''.join(random.sample(string.ascii_letters + string.digits + '!@#$%^&*()_+=-', 32))
+        for size in current_app.config['AVATAR_SIZE']:
+            Picture(f, name=avatar_name, type='avatar', size=size)
+        self.avatar = avatar_name
+        db.session.add(self)
+        db.commit()
 
     def to_json(self):
         json_dict = {}

@@ -3,8 +3,10 @@
 from flask import abort, request, current_app, jsonify
 from flask.ext.login import current_user, login_required
 import json
+import os
 
 from .models.post import Post
+from .models.picture import Picture
 from . import main
 from .forms import check_edit_profile_admin_data, check_edit_profile_data, check_post_data
 from .. import db
@@ -108,6 +110,9 @@ def edit_profile_admin(id):
             db.session.commit()
             json_str = {'status': 'success', 'message': 'The profile has been updated.', 'result': {'user': user.to_json()}}
             return jsonify(json_str)
+        else:
+            json_str = {'status': 'fail', 'message': 'edit profile unseccessfully'}
+            return jsonify(json_str)
     else:
         csrf_token = apply_csrf_token(id=id)
         roles = [{'id': role.id, 'name':role.name} for role in Role.query.all()]
@@ -128,11 +133,70 @@ def edit_profile():
             db.session.commit()
             json_str = {'status': 'success', 'message': 'Your profile has been updated.', 'result': {'user': current_user.to_json()}}
             return jsonify(json_str)
+        else:
+            json_str = {'status': 'fail', 'message': 'edit profile unseccessfully'}
+            return jsonify(json_str)
     else:
         csrf_token = apply_csrf_token()
         json_str = {'status': 'success', 'message': 'edit user profile please', 'result': {'user': current_user.to_json(), 'csrf_token': csrf_token}}
         return jsonify(json_str)    
-    
+
+@main.route('/edit-avatar/<int:id>', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def edit_profile_admin(id):
+    user = User.query.filter_by(id=id).first()
+    if not user:
+        json_str = {'status': 'fail', 'message': 'user doesn`t exist!'}
+        return jsonify(json_str)
+    if request.method == 'POST':
+        if check_csrf_token(request.form['csrf_token']):
+            image = request.files['avatar']
+            user.set_avatar(image)
+            json_str = {'status': 'success', 'message': 'the avatar has been updated.'}
+            return jsonify(json_str)
+        else:
+            json_str = {'status': 'fail', 'message': 'edit avatar unseccessfully'}
+            return jsonify(json_str)
+    else:
+        csrf_token = apply_csrf_token(id=id)
+        json_str = {'status': 'success', 'message': 'edit user avatar please', 'result': {'csrf_token': csrf_token}}
+        return jsonify(json_str)
+
+
+@main.route('/edit-avatar', methods=['GET', 'POST'])
+@login_required
+def edit_profile():
+    if request.method == 'POST':
+        if check_csrf_token(request.form['csrf_token']):
+            image = request.files['avatar']
+            current_user.set_avatar(image)
+            json_str = {'status': 'success', 'message': 'Your avatar has been updated.'}
+            return jsonify(json_str)
+        else:
+            json_str = {'status': 'fail', 'message': 'edit avatar unseccessfully'}
+            return jsonify(json_str)
+    else:
+        csrf_token = apply_csrf_token()
+        json_str = {'status': 'success', 'message': 'edit user profile please', 'result': {'csrf_token': csrf_token}}
+        return jsonify(json_str)
+
+@main.route('/get-avatar/<int:id>', methods=['GET'])
+def get_avatar(id):
+    user = User.query.filter_by(id=id).first()
+    if not user:
+        json_str = {'status': 'fail', 'message': 'user doesn`t exist!'}
+        return jsonify(json_str)
+    avatar_size = request.args.get('size', 'XL')
+    avatar_name = (user.avatar or ) + '_' + avatar_size
+    avatar = Picture.query.filter_by(name=avatar_name).first()
+    if not avatar:
+        json_str = {'status': 'fail', 'message': 'get avatar unsuccessfully.'}
+        return jsonify(json_str)
+
+    json_str = {'status': 'success', 'message': 'Your avatar has been updated.', 'result': {'user_avatar': avatar.file_naem}}
+    return jsonify(json_str)
+
 
 @main.route('/follow', methods=['POST'])
 @login_required

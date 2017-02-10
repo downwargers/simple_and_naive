@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding:utf-8 -*-
 from flask.ext.pagedown.fields import PageDownField
-from flask.ext.wtf import FlaskForm
+from flask.ext.wtf import FlaskForm, csrf
 from flask.ext.login import current_user
 from wtforms import StringField, SubmitField, TextAreaField, BooleanField, ValidationError
 from wtforms.validators import Length, DataRequired, Email, Regexp

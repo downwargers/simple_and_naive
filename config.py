@@ -13,6 +13,12 @@ class Config(object):
     POSTS_PER_PAGE = 15
     FOLLOWERS_PER_PAGE = 20
 
+    AVATAR_SIZE = {
+        'XL': (200, 200),
+        'L': (50, 50),
+        'S': (25, 25),
+    }
+    IMAGE_DIR = 'app/upload/image'
     @staticmethod
     def init_app(app):
         pass

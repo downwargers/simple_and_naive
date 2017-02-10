@@ -20,5 +20,3 @@ class Post(db.Model):
         json_dict['author_id'] = self.author_id
         json_dict['author'] = self.author.to_json()
         return json_dict
-
-db.event.listen(Post.body, 'set', Post.on_changed_body)
