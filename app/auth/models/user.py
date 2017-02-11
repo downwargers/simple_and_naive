@@ -11,8 +11,8 @@ from ...main.models.picture import Picture
 from .role import Role
 from .permission import Permission
 from .relations import FollowRelation
-import random
-import string
+import hashlib
+import os
 
 
 class User(UserMixin, db.Model):
@@ -134,7 +134,7 @@ class User(UserMixin, db.Model):
         return self.can(Permission.ADMINISTER)
 
     def set_avatar(self, f):
-        avatar_name = ''.join(random.sample(string.ascii_letters + string.digits + '!@#$%^&*()_+=-', 32))
+        avatar_name = hashlib.md5(os.urandom(21)).hexdigest()
         for size in current_app.config['AVATAR_SIZE']:
             Picture(f, name=avatar_name, type='avatar', size=size)
         self.avatar = avatar_name

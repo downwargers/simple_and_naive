@@ -20,6 +20,7 @@ def check_login_data(json_data):
     form.remember_me.data = json_data.get('remember_me')
     return form.validate()
 
+
 class RegistrationForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired(), Length(1, 64), Email()])
     username = StringField('User Name', validators=[DataRequired(), Length(1, 64), Regexp('^[A-Za-z][A-Za-z0-9_.]*$', 0, 'Usernames must have only letters, numbers, dots or underscores')])

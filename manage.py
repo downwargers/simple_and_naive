@@ -10,6 +10,7 @@ from app.auth.forms import RegistrationForm
 from app.auth.models.user import User
 from app.auth.models.role import Role
 from app.auth.models.permission import Permission
+from app.main.models.picture import Picture
 
 app = create_app(__name__)
 manager = Manager(app)
@@ -53,6 +54,10 @@ def create_administrator():
 def deploy():
     Permission.insert_permissions()
     Role.insert_roles()
+
+    f = open('default_avatar.png', 'r')
+    for size in app.config['AVATAR_SIZE']:
+        Picture(f, name=app.config['DEFAULT_AVATAR'], type='avatar', size=size)
 
 
 if __name__ == "__main__":

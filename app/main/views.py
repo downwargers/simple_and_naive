@@ -3,7 +3,6 @@
 from flask import abort, request, current_app, jsonify
 from flask.ext.login import current_user, login_required
 import json
-import os
 
 from .models.post import Post
 from .models.picture import Picture
@@ -181,6 +180,7 @@ def edit_profile():
         json_str = {'status': 'success', 'message': 'edit user profile please', 'result': {'csrf_token': csrf_token}}
         return jsonify(json_str)
 
+
 @main.route('/get-avatar/<int:id>', methods=['GET'])
 def get_avatar(id):
     user = User.query.filter_by(id=id).first()
@@ -188,13 +188,13 @@ def get_avatar(id):
         json_str = {'status': 'fail', 'message': 'user doesn`t exist!'}
         return jsonify(json_str)
     avatar_size = request.args.get('size', 'XL')
-    avatar_name = (user.avatar or ) + '_' + avatar_size
+    avatar_name = (user.avatar or current_app.config['DEFAULT_AVATAR']) + '_' + avatar_size
     avatar = Picture.query.filter_by(name=avatar_name).first()
     if not avatar:
         json_str = {'status': 'fail', 'message': 'get avatar unsuccessfully.'}
         return jsonify(json_str)
 
-    json_str = {'status': 'success', 'message': 'Your avatar has been updated.', 'result': {'user_avatar': avatar.file_naem}}
+    json_str = {'status': 'success', 'message': 'Your avatar has been updated.', 'result': {'user_avatar': avatar.file_name}}
     return jsonify(json_str)
 
 

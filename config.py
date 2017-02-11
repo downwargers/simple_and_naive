@@ -19,6 +19,8 @@ class Config(object):
         'S': (25, 25),
     }
     IMAGE_DIR = 'app/upload/image'
+    DEFAULT_AVATAR = 'default_avatar'
+
     @staticmethod
     def init_app(app):
         pass

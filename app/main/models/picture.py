@@ -6,8 +6,6 @@ from flask import current_app
 from PIL import Image
 from io import BytesIO
 import os
-import random
-import string
 import hashlib
 
 allow_formats = ('jpg', 'jpeg', 'png', 'gif')
@@ -24,7 +22,7 @@ class Picture(db.Model):
         if name:
             self.name = name
         else:
-            self.name = ''.join(random.sample(string.ascii_letters + string.digits + '!@#$%^&*()_+=-', 32))
+            self.name = hashlib.md5(os.urandom(21)).hexdigest()
 
         if isinstance(im, file):
             im = Image.open(BytesIO(im.read()))
@@ -55,9 +53,6 @@ class Picture(db.Model):
         db.session.add(self)
         db.commit()
 
-
-
-
     def to_json(self):
         json_dict = {}
         json_dict['id'] = self.id
@@ -65,7 +60,6 @@ class Picture(db.Model):
         json_dict['file_name'] = self.file_name
         json_dict['timestamp'] = self.timestamp
         return json_dict
-
 
     def get_image(self):
         file_path = os.path.join(current_app.config['IMAGE_DIR'], self.file_name)
