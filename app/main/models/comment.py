@@ -5,16 +5,18 @@ from app import db
 from flask import current_app
 
 
-class Post(db.Model):
-    __tablename__ = 'posts'
+class Comment(db.Model):
+    __tablename__ = 'comments'
     id = db.Column(db.Integer, primary_key=True)
     body = db.Column(db.text)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
-    comments = db.relationship('Comment', backref='post', lazy='dynamic')
     author_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    post_id = db.Column(db.Integer, db.ForeignKey('posts.id'))
+    reply_comment_id = db.Column(db.Integer, db.ForeignKey('comments.id'), null=True)
+    comments = db.relationship('Comment', backref='parent_comment', lazy='dynamic')
     alive = db.Column(db.Boolean, default=True)
 
-    def to_json(self, with_author=False, with_comment=False, comment_page=1):
+    def to_json(self, with_author=False, cascading=False, comment_page=1):
         json_dict = {}
         json_dict['id'] = self.id
         json_dict['body'] = self.body
@@ -22,10 +24,13 @@ class Post(db.Model):
         json_dict['author_id'] = self.author_id
         if with_author:
             json_dict['author'] = self.author.to_json(lazy=True)
-        if with_comment:
+        if cascading and self.comments:
             pagination = self.comments.order_by('timestamp desc').paginate(comment_page, per_page=current_app.config['POSTS_PER_PAGE'], error_out=False)
             comments = pagination.items
-            comments = [comment.to_json() for comment in comments]
+            comments = [comment.to_json(with_author=with_author, cascading=cascading) for comment in comments]
             json_str = {'comments': comments, 'page': pagination.page, 'pages': pagination.pages, 'per_page': current_app.config['POSTS_PER_PAGE']}
             json_dict['comments'] = json_str
+
         return json_dict
+
+

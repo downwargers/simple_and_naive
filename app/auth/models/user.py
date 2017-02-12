@@ -26,8 +26,10 @@ class User(UserMixin, db.Model):
     last_seen = db.Column(db.DateTime(), default=datetime.utcnow)
     password_hash = db.Column(db.String(128))
     confirmed = db.Column(db.Boolean, default=False)
+    alive = db.Column(db.Boolean, default=True)
 
     posts = db.relationship('Post', backref='author', lazy='dynamic')
+    comments = db.relationship('Comment', backref='author', lazy='dynamic')
 
     roles = db.relationship('Role', secondary='user_role_relation', backref=db.backref('users', lazy='dynamic'), lazy='dynamic')
 
@@ -141,16 +143,17 @@ class User(UserMixin, db.Model):
         db.session.add(self)
         db.commit()
 
-    def to_json(self):
+    def to_json(self, lazy=False):
         json_dict = {}
         json_dict['id'] = self.id
         json_dict['username'] = self.username
         json_dict['email'] = self.email
         json_dict['about_me'] = self.about_me
         json_dict['last_seen'] = self.last_seen
-        json_dict['confirmed'] = self.confirmed
-        json_dict['roles'] = [role.name for role in self.roles.all()]
-        json_dict['permissions'] = [permission.name for permission in self.permissions.all()]
+        if not lazy:
+            json_dict['confirmed'] = self.confirmed
+            json_dict['roles'] = [role.name for role in self.roles.all()]
+            json_dict['permissions'] = [permission.name for permission in self.permissions.all()]
         return json_dict
 
 
