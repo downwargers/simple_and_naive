@@ -6,7 +6,7 @@ from flask.ext.script import Manager, Server, Shell
 
 import app
 from app import create_app, db
-from app.auth.forms import RegistrationForm
+from app.auth.forms import check_registration_data
 from app.auth.models.user import User
 from app.auth.models.role import Role
 from app.auth.models.permission import Permission
@@ -31,22 +31,16 @@ def create_administrator():
     email = raw_input("Email address (leave blank to use '" + app.config['FLASK_ADMIN'] + "'):") or app.config['FLASK_ADMIN']
     password = raw_input("Password:")
     re_password = raw_input("Password (again):")
-    form = RegistrationForm(meta={"csrf": False})
-    form.email.data = email
-    form.username.data = username
-    form.password.data = password
-    form.password2.data = re_password
 
-    print form
-    print form.validate()
-    if form.validate():
+    administrator_json = {"email": email, "username": username, "password": password, "password2": re_password}
+
+    if check_registration_data(administrator_json):
         user = User(email=email, username=username, password=password, confirmed=True)
-        user.append_role(Role.ADMINISTRATOR)
+        user.set_roles(Role.ADMINISTRATOR)
         db.session.add(user)
         db.session.commit()
         print "Administrator created successfully."
     else:
-        print form.errors
         print "Fail to create Administrator!"
 
 
@@ -55,9 +49,8 @@ def deploy():
     Permission.insert_permissions()
     Role.insert_roles()
 
-    f = open('default_avatar.png', 'r')
     for size in app.config['AVATAR_SIZE']:
-        Picture(f, name=app.config['DEFAULT_AVATAR'], type='avatar', size=size)
+        Picture(app.config['DEFAULT_AVATAR_FILE'], name=app.config['DEFAULT_AVATAR'], type='avatar', size=size)
 
 
 if __name__ == "__main__":

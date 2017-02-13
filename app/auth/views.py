@@ -9,7 +9,8 @@ from . import auth
 from .forms import check_login_data, check_registration_data, check_edit_profile_admin_data, check_edit_profile_data
 from .. import db
 from ..email import send_email
-from ..tools import apply_token, check_token
+from ..tools import apply_token
+from ..decoraters import token_required
 import json
 
 
@@ -23,9 +24,10 @@ def get_user():
 
 
 @auth.route('/user', methods=['POST'])
+@token_required
 def register():
     request_info = json.loads(request.data)
-    if check_token(request_info.get('token'), id=current_user.id) and check_registration_data(request_info):
+    if check_registration_data(request_info):
         user = User.query.filter_by(email=request_info.get('email')).first()
         if user is not None and user.verify_password(request_info.get('password')):
             user = User(email=request_info.get('email'), username=request_info.get('username'), password=request_info.get('password'))
@@ -38,11 +40,13 @@ def register():
             send_email(user.email, 'Confirm Your Account', 'auth/email/confirm', user=user, token=token)
             json_str = {'status': 'success', 'message': 'register successfully!'}
             return jsonify(json_str)
-    abort(500)
+    json_str = {'status': 'fail', 'message': 'register unseccessfully'}
+    return jsonify(json_str)
 
 
-@auth.route('/user/', methods=['PUT'])
+@auth.route('/user', methods=['PUT'])
 @login_required
+@token_required
 def edit_user_profile():
     request_info = json.loads(request.data)
     if current_user.is_administrator():
@@ -50,7 +54,7 @@ def edit_user_profile():
         if not user:
             json_str = {'status': 'fail', 'message': 'user does not exist!'}
             return jsonify(json_str)
-        if check_token(request_info.get('token'), id=id) and check_edit_profile_admin_data(request_info, user):
+        if check_edit_profile_admin_data(request_info, user):
             user.email = request_info['email']
             user.username = request_info['username']
             user.confirmed = request_info['confirmed']
@@ -62,7 +66,7 @@ def edit_user_profile():
             json_str = {'status': 'success', 'message': 'The profile has been updated.'}
             return jsonify(json_str)
     else:
-        if check_token(request_info.get('token')) and check_edit_profile_data(request_info):
+        if check_edit_profile_data(request_info):
             current_user.username = request_info['username']
             current_user.about_me = request_info['about_me']
             db.session.add(current_user)
@@ -73,16 +77,17 @@ def edit_user_profile():
     return jsonify(json_str)
 
 
-@auth.route('/user/', methods=['DELETE'])
+@auth.route('/user', methods=['DELETE'])
 @login_required
-def edit_user_profile():
+@token_required
+def delete_user_profile():
     request_info = json.loads(request.data)
     if current_user.is_administrator():
         user = User.query.filter_by(id=request_info['id']).first()
         if not user:
             json_str = {'status': 'fail', 'message': 'user does not exist!'}
             return jsonify(json_str)
-        if check_token(request_info.get('token'), id=id) and check_edit_profile_admin_data(request_info, user):
+        if check_edit_profile_admin_data(request_info, user):
             user.alive = False
             db.session.add(user)
             db.session.commit()
@@ -90,7 +95,7 @@ def edit_user_profile():
             json_str = {'status': 'success', 'message': 'Delete the user successfully.'}
             return jsonify(json_str)
     else:
-        if check_token(request_info.get('token')) and check_edit_profile_data(request_info):
+        if check_edit_profile_data(request_info):
             current_user.alive = False
             db.session.add(current_user)
             db.session.commit()

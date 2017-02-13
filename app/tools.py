@@ -22,7 +22,7 @@ def check_token(token, expire=3600, **kwargs):
         json_dict = s.loads(token)
         if datetime.now() - datetime.strptime(json_dict['timestamp'], '%Y-%m-%d %H:%M:%S.%f') > timedelta(seconds=expire):
             return False
-        if json_dict['user_id'] != current_user.id:
+        if current_user.is_anonymous() or json_dict['user_id'] != current_user.id:
             return False
         if not all([json_dict[key] == kwargs[key] for key in kwargs]):
             return False

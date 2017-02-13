@@ -31,7 +31,7 @@ class Role(db.Model):
         db.session.add(self)
 
     def clear_permissions(self):
-        self.permissions.delete()
+        self.permissions = []
         db.session.add(self)
     
     def can(self, permission_name):

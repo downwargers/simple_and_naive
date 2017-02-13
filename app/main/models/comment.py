@@ -8,12 +8,12 @@ from flask import current_app
 class Comment(db.Model):
     __tablename__ = 'comments'
     id = db.Column(db.Integer, primary_key=True)
-    body = db.Column(db.text)
-    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    body = db.Column(db.Text())
+    timestamp = db.Column(db.DateTime(), index=True, default=datetime.utcnow)
     author_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     post_id = db.Column(db.Integer, db.ForeignKey('posts.id'))
-    reply_comment_id = db.Column(db.Integer, db.ForeignKey('comments.id'), null=True)
-    comments = db.relationship('Comment', backref='parent_comment', lazy='dynamic')
+    reply_comment_id = db.Column(db.Integer, db.ForeignKey('comments.id'), nullable=True)
+    comments = db.relationship('Comment', backref=db.backref('parent_comment', remote_side=[id]), lazy='dynamic')
     alive = db.Column(db.Boolean, default=True)
 
     def to_json(self, with_author=False, cascading=False, comment_page=1):

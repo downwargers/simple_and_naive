@@ -10,12 +10,13 @@ import hashlib
 
 allow_formats = ('jpg', 'jpeg', 'png', 'gif')
 
+
 class Picture(db.Model):
     __tablename__ = 'pictures'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64))
     file_name = db.Column(db.String(64))
-    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    timestamp = db.Column(db.DateTime(), index=True, default=datetime.utcnow)
     alive = db.Column(db.Boolean, default=True)
 
     def __init__(self, im, name=None, type='', size='XL'):
@@ -23,9 +24,8 @@ class Picture(db.Model):
             self.name = name
         else:
             self.name = hashlib.md5(os.urandom(21)).hexdigest()
-
-        if isinstance(im, file):
-            im = Image.open(BytesIO(im.read()))
+        if isinstance(im, str):
+            im = Image.open(im)
         mime = im.format.lower()
         if mime not in allow_formats:
             raise IOError()
@@ -35,23 +35,28 @@ class Picture(db.Model):
             picture_center = (im.size[0] / 2, im.size[1] / 2)
             picture_center_part = (picture_center[0] - avatar_size / 2, picture_center[1] - avatar_size / 2, picture_center[0] + avatar_size / 2, picture_center[1] + avatar_size / 2)
             im = im.crop(picture_center_part)
-            avavar_size = current_app.config['AVATAR_SIZE'].get('size')
-            if avavar_size:
-                im = im.resize((avavar_size, avavar_size))
-                self.name += '_' + size
-                self.file_name = self.name + '.jpg'
-            im.save(os.path.join(current_app.config['IMAGE_DIR'], self.file_name), 'jpeg')
+            avatar_size = current_app.config['AVATAR_SIZE'].get(size)
+            im = im.resize((avatar_size, avatar_size))
+            self.name += '_' + size
+            self.file_name = self.name + '.jpg'
+            file_path = os.path.join(current_app.config['IMAGE_DIR'], self.file_name)
+            im.save(file_path, 'jpeg')
         else:
             self.file_name = self.name + '.' + mime
-            im.save(os.path.join(current_app.config['IMAGE_DIR'], self.file_name), mime)
+            file_path = os.path.join(current_app.config['IMAGE_DIR'], self.file_name)
+            im.save(file_path, mime)
 
-        image_file = open(os.path.join(current_app.config['IMAGE_DIR'], self.file_name), 'r').read()
+        image_file = open(file_path, 'r').read()
         new_name = hashlib.md5(image_file).hexdigest() + '.' + self.file_name.split('.')[1]
-        os.rename(os.path.join(current_app.config['IMAGE_DIR'], self.file_name), os.path.join(current_app.config['IMAGE_DIR'], new_name))
-        self.file_name = new_name
+        new_file_path = os.path.join(current_app.config['IMAGE_DIR'], new_name)
+        if Picture.query.filter_by(file_name=new_name).first():
+            os.remove(file_path)
+        else:
+            os.rename(file_path, new_file_path)
+            self.file_name = new_name
 
-        db.session.add(self)
-        db.commit()
+            db.session.add(self)
+            db.session.commit()
 
     def to_json(self):
         json_dict = {}

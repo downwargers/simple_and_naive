@@ -14,12 +14,13 @@ class Config(object):
     FOLLOWERS_PER_PAGE = 20
 
     AVATAR_SIZE = {
-        'XL': (200, 200),
-        'L': (50, 50),
-        'S': (25, 25),
+        'XL': 200,
+        'L': 50,
+        'S': 25,
     }
     IMAGE_DIR = 'app/upload/image'
     DEFAULT_AVATAR = 'default_avatar'
+    DEFAULT_AVATAR_FILE = 'default_avatar.png'
 
     @staticmethod
     def init_app(app):

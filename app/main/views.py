@@ -3,6 +3,8 @@
 from flask import abort, request, current_app, jsonify
 from flask.ext.login import current_user, login_required
 import json
+import os
+import hashlib
 
 from .models.post import Post
 from .models.comment import Comment
@@ -12,7 +14,7 @@ from .forms import check_post_data, check_comment_data
 from .. import db
 from ..auth.models.permission import Permission
 from ..auth.models.user import User
-from ..decoraters import permission_required
+from ..decoraters import permission_required, token_required
 from ..tools import check_token
 
 
@@ -45,10 +47,11 @@ def get_post():
 
 @main.route('/post')
 @login_required
+@token_required
 def edit_post():
     if request.method == 'POST':
         request_info = json.loads(request.data)
-        if check_token(request_info.get('token')) and check_post_data(request_info):
+        if  check_post_data(request_info):
             post = Post(body=request_info.get('body'), author=current_user._get_current_object())
             db.session.add(post)
             db.commit()
@@ -58,7 +61,7 @@ def edit_post():
         return jsonify(json_str)
     elif request.method == 'PUT':
         request_info = json.loads(request.data)
-        if check_token(request_info.get('token')) and check_post_data(request_info):
+        if check_post_data(request_info):
             post = Post.query.filter_by(id=request_info.get('id')).first()
             if post.alive is True and post.author_id == current_user.id or current_user.is_administrator():
                 post.body = request_info.get('body')
@@ -92,10 +95,11 @@ def edit_post():
 
 @main.route('/comment')
 @login_required
+@token_required
 def edit_comment():
     if request.method == 'POST':
         request_info = json.loads(request.data)
-        if check_token(request_info.get('token')) and check_comment_data(request_info):
+        if check_comment_data(request_info):
             comment = Comment(body=request_info.get('body'), author=current_user._get_current_object())
             db.session.add(comment)
             db.commit()
@@ -105,7 +109,7 @@ def edit_comment():
         return jsonify(json_str)
     elif request.method == 'PUT':
         request_info = json.loads(request.data)
-        if check_token(request_info.get('token')) and check_comment_data(request_info):
+        if check_comment_data(request_info):
             comment = Comment.query.filter_by(id=request_info.get('id')).first()
             if comment.alive is True and comment.author_id == current_user.id or current_user.is_administrator():
                 comment.body = request_info.get('body')
@@ -148,15 +152,25 @@ def edit_profile():
                 json_str = {'status': 'fail', 'status_code': 1, 'message': 'user doesn`t exist!'}
                 return jsonify(json_str)
             image = request.files['avatar']
-            user.set_avatar(image)
+            avatar_name = hashlib.md5(os.urandom(21)).hexdigest()
+            for size in current_app.config['AVATAR_SIZE']:
+                Picture(image, name=avatar_name, type='avatar', size=size)
+            user.avatar = avatar_name
+            db.session.add(user)
+            db.commit()
             json_str = {'status': 'success', 'status_code': 0, 'message': 'the avatar has been updated.'}
             return jsonify(json_str)
         image = request.files['avatar']
-        current_user.set_avatar(image)
+        avatar_name = hashlib.md5(os.urandom(21)).hexdigest()
+        for size in current_app.config['AVATAR_SIZE']:
+            Picture(image, name=avatar_name, type='avatar', size=size)
+        current_user.avatar = avatar_name
+        db.session.add(current_user)
+        db.commit()
         json_str = {'status': 'success', 'status_code': 0, 'message': 'Your avatar has been updated.'}
         return jsonify(json_str)
     else:
-        json_str = {'status': 'fail', 'status_code': 1, 'message': 'edit avatar unseccessfully'}
+        json_str = {'status': 'fail', 'status_code': 3, 'message': 'please login again'}
         return jsonify(json_str)
 
 
@@ -179,6 +193,7 @@ def get_avatar():
 
 @main.route('/follow', methods=['POST'])
 @login_required
+@token_required
 @permission_required(Permission.FOLLOW)
 def follow():
     request_info = json.loads(request.data)
@@ -196,6 +211,7 @@ def follow():
 
 @main.route('/unfollow', methods=['POST'])
 @login_required
+@token_required
 @permission_required(Permission.FOLLOW)
 def unfollow():
     request_info = json.loads(request.data)
