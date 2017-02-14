@@ -39,6 +39,8 @@ class Picture(db.Model):
             im = im.resize((avatar_size, avatar_size))
             self.name += '_' + size
             self.file_name = self.name + '.jpg'
+            if not os.path.exists(current_app.config['IMAGE_DIR']):
+                os.makedirs(current_app.config['IMAGE_DIR'])
             file_path = os.path.join(current_app.config['IMAGE_DIR'], self.file_name)
             im.save(file_path, 'jpeg')
         else:

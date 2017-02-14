@@ -3,19 +3,15 @@
 from flask import abort, request, current_app, jsonify
 from flask.ext.login import current_user, login_required
 import json
-import os
-import hashlib
 
 from .models.post import Post
 from .models.comment import Comment
-from .models.picture import Picture
 from . import main
 from .forms import check_post_data, check_comment_data
 from .. import db
 from ..auth.models.permission import Permission
 from ..auth.models.user import User
 from ..decoraters import permission_required, token_required
-from ..tools import check_token
 
 
 @main.route('/posts', methods=['GET'])
@@ -139,56 +135,6 @@ def edit_comment():
         else:
             json_str = {'status': 'fail', 'status_code': 1, 'message': 'comment does not exist'}
             return jsonify(json_str)
-
-
-@main.route('/edit-avatar', methods=['POST'])
-@login_required
-def edit_profile():
-    if check_token(request.form['token']):
-        if current_user.is_administrator():
-            request_info = json.loads(request.data)
-            user = User.query.filter_by(request_info['id']).first()
-            if not user:
-                json_str = {'status': 'fail', 'status_code': 1, 'message': 'user doesn`t exist!'}
-                return jsonify(json_str)
-            image = request.files['avatar']
-            avatar_name = hashlib.md5(os.urandom(21)).hexdigest()
-            for size in current_app.config['AVATAR_SIZE']:
-                Picture(image, name=avatar_name, type='avatar', size=size)
-            user.avatar = avatar_name
-            db.session.add(user)
-            db.commit()
-            json_str = {'status': 'success', 'status_code': 0, 'message': 'the avatar has been updated.'}
-            return jsonify(json_str)
-        image = request.files['avatar']
-        avatar_name = hashlib.md5(os.urandom(21)).hexdigest()
-        for size in current_app.config['AVATAR_SIZE']:
-            Picture(image, name=avatar_name, type='avatar', size=size)
-        current_user.avatar = avatar_name
-        db.session.add(current_user)
-        db.commit()
-        json_str = {'status': 'success', 'status_code': 0, 'message': 'Your avatar has been updated.'}
-        return jsonify(json_str)
-    else:
-        json_str = {'status': 'fail', 'status_code': 3, 'message': 'please login again'}
-        return jsonify(json_str)
-
-
-@main.route('/get-avatar', methods=['GET'])
-def get_avatar():
-    user = User.query.filter_by(id=int(request.args.get('id'))).first()
-    if not user:
-        json_str = {'status': 'fail', 'message': 'user doesn`t exist!'}
-        return jsonify(json_str)
-    avatar_size = request.args.get('size', 'XL')
-    avatar_name = (user.avatar or current_app.config['DEFAULT_AVATAR']) + '_' + avatar_size
-    avatar = Picture.query.filter_by(name=avatar_name).first()
-    if not avatar:
-        json_str = {'status': 'fail', 'status_code': 1, 'message': 'get avatar unsuccessfully.'}
-        return jsonify(json_str)
-
-    json_str = {'status': 'success', 'status_code': 0, 'message': 'Your avatar has been updated.', 'result': {'user_avatar': avatar.file_name}}
-    return jsonify(json_str)
 
 
 @main.route('/follow', methods=['POST'])
