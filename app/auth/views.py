@@ -19,12 +19,11 @@ def get_user():
     user = User.query.filter_by(username=request.args.get('username')).first()
     if user is None:
         abort(404)
-    json_str = {'status': 'success', 'message': 'get user successfully', 'result': {'user': user.to_json()}}
+    json_str = {'status': 'success', 'message': 'get user successfully', 'result': {'user': user.to_json(lazy=True)}}
     return jsonify(json_str)
 
 
 @auth.route('/user', methods=['POST'])
-@token_required
 def register():
     request_info = json.loads(request.data)
     if check_registration_data(request_info):

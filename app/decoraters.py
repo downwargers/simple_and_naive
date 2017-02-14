@@ -25,7 +25,6 @@ def admin_required(f):
     return permission_required(Permission.ADMINISTER)(f)
 
 
-
 def token_required(func):
     @wraps(func)
     def decorated_function(*args, **kwargs):

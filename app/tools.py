@@ -17,6 +17,8 @@ def apply_token(expire=3600, **kwargs):
 
 
 def check_token(token, expire=3600, **kwargs):
+    if not token:
+        return False
     s = Serializer(current_app.config['SECRET_KEY'], expires_in = expire)
     try:
         json_dict = s.loads(token)
