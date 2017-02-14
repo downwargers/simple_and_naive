@@ -1,4 +1,4 @@
-#!/root/PycharmProjects/simple_and_naive/venv/bin/python2
+#!/root/PycharmProjects/simple_and_naive/venv/bin/python
 #
 # The Python Imaging Library
 # $Id$

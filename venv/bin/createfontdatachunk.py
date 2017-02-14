@@ -1,4 +1,4 @@
-#!/root/PycharmProjects/simple_and_naive/venv/bin/python2
+#!/root/PycharmProjects/simple_and_naive/venv/bin/python
 from __future__ import print_function
 import base64
 import os

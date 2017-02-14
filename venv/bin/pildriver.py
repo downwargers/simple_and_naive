@@ -1,4 +1,4 @@
-#!/root/PycharmProjects/simple_and_naive/venv/bin/python2
+#!/root/PycharmProjects/simple_and_naive/venv/bin/python
 """PILdriver, an image-processing calculator using PIL.
 
 An instance of class PILDriver is essentially a software stack machine
