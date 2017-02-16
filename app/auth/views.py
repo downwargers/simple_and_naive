@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding:utf-8 -*-
-from flask import redirect, request, url_for, flash, abort, jsonify, current_app
+from flask import redirect, request, url_for, abort, jsonify, current_app
 from flask.ext.login import login_user, logout_user, login_required, current_user
 
 from .models.user import User
@@ -192,13 +192,11 @@ def logout():
 
 
 @auth.route('/confirm/<token>')
-@login_required
 def confirm(token):
-    if current_user.confirmed or current_user.confirm(token):
+    if User.confirm(token):
         json_str = {'status': 'success', 'message': 'You have confirmed your account. Thanks!'}
         return jsonify(json_str)
     else:
-        flash('The confirmation link is invalid or has expired.')
         json_str = {'status': 'fail', 'message': 'The confirmation link is invalid or has expired.'}
         return jsonify(json_str)
 

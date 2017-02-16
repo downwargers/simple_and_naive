@@ -103,18 +103,21 @@ class User(UserMixin, db.Model):
 
     def generate_confirmation_token(self, expiration=3600):
         s = Serializer(current_app.config['SECRET_KEY'], expiration)
-        return s.dumps({'confirm': self.id})
+        return s.dumps({'id': self.id, 'email': self.email})
 
-    def confirm(self, token):
+    @staticmethod
+    def confirm(token):
         s = Serializer(current_app.config['SECRET_KEY'])
         try:
             data = s.loads(token)
         except:
             return False
-        if data.get('confirm') != self.id:
+        email = data.get('email')
+        user = User.query.filter_by(id=data.get('id')).first()
+        if not user or user.email != email:
             return False
-        self.confirmed = True
-        db.session.add(self)
+        user.confirmed = True
+        db.session.add(user)
         db.session.commit()
         return True
 

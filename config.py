@@ -32,7 +32,8 @@ class DevelopmentConfig(Config):
     DEBUG = True
     FLASK_ADMIN = 'downwargers@163.com'
     MAIL_SUBJECT_PREFIX = '[Simple and Naive]'
-    MAIL_SENDER = 'Simple and Naive Admin <downwargers@163.com>'
+    #MAIL_SENDER = 'Simple and Naive Admin <downwargers@163.com>'
+    MAIL_SENDER = 'downwargers@163.com <downwargers@163.com>'
     SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'data.sqlite')
     #HOST = '127.0.0.1'
     PORT = 5000
