@@ -14,6 +14,12 @@ class Permission(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64), unique=True)
 
+    def match(self, permission_name):
+        if self.name == Permission.ADMINISTER or self.name == permission_name:
+            return True
+        else:
+            return False
+
     @staticmethod
     def insert_permissions():
         permissions = [Permission.FOLLOW, Permission.COMMENT, Permission.WRITE_ARTICLES, Permission.MODERATE_COMMENTS, Permission.ADMINISTER]

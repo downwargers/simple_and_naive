@@ -31,5 +31,5 @@ def token_required(func):
         if request.method in ['POST', 'PUT', 'DELETE'] and not check_token(json.loads(request.data).get('token')):
             json_str = {'status': 'fail', 'status_code': 3, 'message': 'please login again'}
             return jsonify(json_str)
-        return f(*args, **kwargs)
+        return func(*args, **kwargs)
     return decorated_function

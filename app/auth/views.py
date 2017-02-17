@@ -22,7 +22,11 @@ def get_user():
     user = User.query.filter_by(username=request.args.get('username')).first()
     if user is None:
         abort(404)
-    json_str = {'status': 'success', 'message': 'get user successfully', 'result': {'user': user.to_json(lazy=True)}}
+    if current_user.is_administrator() and request.args.get('lazy') == 'False':
+        user_content = user.to_json()
+    else:
+        user_content = user.to_json(lazy=True)
+    json_str = {'status': 'success', 'message': 'get user successfully', 'result': {'user': user_content}}
     return jsonify(json_str)
 
 
@@ -134,7 +138,7 @@ def edit_profile():
                 Picture(image, name=avatar_name, type='avatar', size=size)
             user.avatar = avatar_name
             db.session.add(user)
-            db.commit()
+            db.session.commit()
             json_str = {'status': 'success', 'status_code': 0, 'message': 'the avatar has been updated.'}
             return jsonify(json_str)
         image = request.files['avatar']
@@ -143,7 +147,7 @@ def edit_profile():
             Picture(image, name=avatar_name, type='avatar', size=size)
         current_user.avatar = avatar_name
         db.session.add(current_user)
-        db.commit()
+        db.session.commit()
         json_str = {'status': 'success', 'status_code': 0, 'message': 'Your avatar has been updated.'}
         return jsonify(json_str)
     else:
@@ -176,11 +180,11 @@ def login():
         if user is not None and user.verify_password(request_info.get('password')):
             login_user(user, request_info.get('remember_me', False))
             json_str = {'status': 'success', 'message': 'You have been logged in successfully!', 'result': {'user': user.to_json(), 'remember_me': request_info.get('remember_me', False)}}
-            return jsonify(json_str)
+            response = jsonify(json_str)
+            response.set_cookie('token', apply_token())
+            return response
     json_str = {'status': 'fail', 'message': 'login unseccessfully'}
-    response = jsonify(json_str)
-    response.set_cookie('token', apply_token())
-    return response
+    return jsonify(json_str)
 
 
 @auth.route('/logout', methods=['POST'])

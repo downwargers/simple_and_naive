@@ -10,7 +10,10 @@ from app.auth.forms import check_registration_data
 from app.auth.models.user import User
 from app.auth.models.role import Role
 from app.auth.models.permission import Permission
+from app.auth.models.relations import FollowRelation, RolePermissionRelation, UserPermissionRelation, UserRoleRelation
 from app.main.models.picture import Picture
+from app.main.models.post import Post
+from app.main.models.comment import Comment
 
 app = create_app(__name__)
 manager = Manager(app)
@@ -18,7 +21,7 @@ migrate = Migrate(app, db)
 
 
 def make_shell_context():
-    return dict(app=app, db=db, User=User, Role=Role, Permission=Permission)
+    return dict(app=app, db=db, User=User, Role=Role, Permission=Permission, FollowRelation=FollowRelation, UserRoleRelation=UserRoleRelation, UserPermissionRelation=UserPermissionRelation, RolePermissionRelation=RolePermissionRelation, Post=Post, Comment=Comment, Picture=Picture)
 manager.add_command("shell", Shell(make_context=make_shell_context))
 manager.add_command('db', MigrateCommand)
 manager.add_command("server", Server(host=app.config['HOST'], port=app.config['PORT']))

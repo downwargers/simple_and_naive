@@ -16,7 +16,7 @@ class Picture(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64))
     file_name = db.Column(db.String(64))
-    timestamp = db.Column(db.DateTime(), index=True, default=datetime.utcnow)
+    timestamp = db.Column(db.DateTime(), index=True, default=datetime.now())
     alive = db.Column(db.Boolean, default=True)
 
     def __init__(self, im, name=None, type='', size='XL'):

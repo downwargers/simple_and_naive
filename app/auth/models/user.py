@@ -18,8 +18,8 @@ class User(UserMixin, db.Model):
     avatar = db.Column(db.String(64), nullable=True)
     username = db.Column(db.String(64), unique=True, index=True)
     about_me = db.Column(db.Text())
-    member_since = db.Column(db.DateTime(), default=datetime.utcnow)
-    last_seen = db.Column(db.DateTime(), default=datetime.utcnow)
+    member_since = db.Column(db.DateTime(), default=datetime.now())
+    last_seen = db.Column(db.DateTime(), default=datetime.now())
     password_hash = db.Column(db.String(128))
     confirmed = db.Column(db.Boolean, default=False)
     alive = db.Column(db.Boolean, default=True)
@@ -74,20 +74,22 @@ class User(UserMixin, db.Model):
         if not self.is_following(user):
             f = FollowRelation(follower=self, followee=user)
             db.session.add(f)
+            db.session.commit()
 
     def unfollow(self, user):
-        f = self.followees.filter(FollowRelation.follower_id == user.id).first()
+        f = self.followees.filter(FollowRelation.followee_id == user.id).first()
         if f:
             db.session.delete(f)
+            db.session.commit()
 
     def is_following(self, user):
-        return self.followees.filter(FollowRelation.follower_id == user.id).first() is not None
+        return self.followees.filter(FollowRelation.followee_id == user.id).first() is not None
 
     def is_followed_by(self, user):
-        return self.followers.filter(FollowRelation.followee_id == user.id).first() is not None
+        return self.followers.filter(FollowRelation.follower_id == user.id).first() is not None
 
     def ping(self):
-        self.last_seen = datetime.utcnow()
+        self.last_seen = datetime.now()
         db.session.add(self)
 
     @property
@@ -124,7 +126,7 @@ class User(UserMixin, db.Model):
     def can(self, permission_name):
         if isinstance(permission_name, list):
             return all([self.can(p) for p in permission_name])
-        a = permission_name in [permission.name for permission in self.permissions.all()] or any([permission.can(permission_name) for role in self.roles.all()])
+        a = permission_name in [permission.name for permission in self.permissions.all()] or any([role.can(permission_name) for role in self.roles.all()])
         return a
 
     def is_administrator(self):

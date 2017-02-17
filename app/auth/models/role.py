@@ -37,7 +37,7 @@ class Role(db.Model):
     def can(self, permission_name):
         if isinstance(permission_name, list):
             return all([self.can(p) for p in permission_name])
-        return permission_name in [permission.name for permission in self.permissions.all()]
+        return any([permission.match(permission_name) for permission in self.permissions.all()])
 
     @staticmethod
     def insert_roles():

@@ -30,8 +30,8 @@ class FollowRelation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     followee_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     follower_id = db.Column(db.Integer, db.ForeignKey('users.id'))
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    timestamp = db.Column(db.DateTime, default=datetime.now())
 
-    def __init__(self, followee_id, follower_id):
+    '''def __init__(self, followee_id, follower_id):
         self.followee_id = followee_id
-        self.follower_id = follower_id
+        self.follower_id = follower_id'''

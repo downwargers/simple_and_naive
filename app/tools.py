@@ -12,23 +12,30 @@ def apply_token(expire=3600, **kwargs):
     for key in kwargs:
         json_dict['key'] = kwargs[key]
     token = s.dumps(json_dict)
-    session.setdefault('csrf_token',[]).append(token)
+    session['csrf_token'] = []
+    session['csrf_token'].append(token)
     return token
 
 
 def check_token(token, expire=3600, **kwargs):
-    if not token:
+    print current_user, current_user.username
+    if not token or token not in session.setdefault('csrf_token',[]):
         return False
     s = Serializer(current_app.config['SECRET_KEY'], expires_in = expire)
-    try:
-        json_dict = s.loads(token)
-        if datetime.now() - datetime.strptime(json_dict['timestamp'], '%Y-%m-%d %H:%M:%S.%f') > timedelta(seconds=expire):
-            return False
-        if current_user.is_anonymous() or json_dict['user_id'] != current_user.id:
-            return False
-        if not all([json_dict[key] == kwargs[key] for key in kwargs]):
-            return False
-        return True
-    except:
+    #try:
+    json_dict = s.loads(token)
+    print json_dict
+    if datetime.now() - datetime.strptime(json_dict['timestamp'], '%Y-%m-%d %H:%M:%S.%f') > timedelta(seconds=expire):
+        print 'AAA'
         return False
+    if current_user.is_anonymous or json_dict['user_id'] != current_user.id:
+        print 'BBB'
+        return False
+    if not all([json_dict[key] == kwargs[key] for key in kwargs]):
+        print 'CCC'
+        return False
+    return True
+    '''except:
+        print 'DDD'
+        return False'''
 

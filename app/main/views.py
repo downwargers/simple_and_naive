@@ -41,7 +41,7 @@ def get_post():
     return jsonify(json_str)
 
 
-@main.route('/post')
+@main.route('/post', methods=['GET', 'POST', 'PUT', 'DELETE'])
 @login_required
 @token_required
 def edit_post():
@@ -50,7 +50,7 @@ def edit_post():
         if  check_post_data(request_info):
             post = Post(body=request_info.get('body'), author=current_user._get_current_object())
             db.session.add(post)
-            db.commit()
+            db.session.commit()
             json_str = {'status': 'success', 'status_code': 0, 'message': 'add post successfully!'}
             return jsonify(json_str)
         json_str = {'status': 'fail', 'status_code': 1, 'message': 'add post unseccessfully'}
@@ -62,7 +62,7 @@ def edit_post():
             if post.alive is True and post.author_id == current_user.id or current_user.is_administrator():
                 post.body = request_info.get('body')
                 db.session.add(post)
-                db.commit()
+                db.session.commit()
                 json_str = {'status': 'success', 'status_code': 0, 'message': 'edit post successfully!'}
                 return jsonify(json_str)
         json_str = {'status': 'fail', 'status_code': 1, 'message': 'edit post unseccessfully'}
@@ -72,7 +72,7 @@ def edit_post():
         post = Post.query.filter_by(id=request_info.get('id')).first()
         post.alive = False
         db.session.add(post)
-        db.commit()
+        db.session.commit()
         json_str = {'status': 'success', 'status_code': 0, 'message': 'delete post successfully!'}
         return jsonify(json_str)
     else:
@@ -82,23 +82,24 @@ def edit_post():
             return jsonify(json_str)
         if post:
             post_content = post.to_json(with_author=True, with_comment=True, comment_page=int(request.args.get('page', 1)))
-            json_str = {'status': 'success', 'status_code': 0, 'message': 'add or change post please', 'result': {'post': post_content}}
+            json_str = {'status': 'success', 'status_code': 0, 'message': 'get post successfully!', 'result': {'post': post_content}}
             return jsonify(json_str)
         else:
             json_str = {'status': 'fail', 'status_code': 1, 'message': 'post does not exist'}
             return jsonify(json_str)
 
 
-@main.route('/comment')
+@main.route('/comment', methods=['GET', 'POST', 'PUT', 'DELETE'])
 @login_required
 @token_required
 def edit_comment():
     if request.method == 'POST':
         request_info = json.loads(request.data)
         if check_comment_data(request_info):
-            comment = Comment(body=request_info.get('body'), author=current_user._get_current_object())
+            post = Post.query.filter_by(id=int(request_info.get('post_id'))).first()
+            comment = Comment(body=request_info.get('body'), author=current_user._get_current_object(), post=post)
             db.session.add(comment)
-            db.commit()
+            db.session.commit()
             json_str = {'status': 'success', 'status_code': 0, 'message': 'add comment successfully!'}
             return jsonify(json_str)
         json_str = {'status': 'fail', 'status_code': 1, 'message': 'add comment unseccessfully'}
@@ -110,7 +111,7 @@ def edit_comment():
             if comment.alive is True and comment.author_id == current_user.id or current_user.is_administrator():
                 comment.body = request_info.get('body')
                 db.session.add(comment)
-                db.commit()
+                db.session.commit()
                 json_str = {'status': 'success', 'status_code': 0, 'message': 'edit comment successfully!'}
                 return jsonify(json_str)
         json_str = {'status': 'fail', 'status_code': 1, 'message': 'edit comment unseccessfully'}
@@ -120,7 +121,7 @@ def edit_comment():
         comment = Comment.query.filter_by(id=request_info.get('id')).first()
         comment.alive = False
         db.session.add(comment)
-        db.commit()
+        db.session.commit()
         json_str = {'status': 'success', 'status_code': 0, 'message': 'delete comment successfully!'}
         return jsonify(json_str)
     else:
@@ -143,7 +144,7 @@ def edit_comment():
 @permission_required(Permission.FOLLOW)
 def follow():
     request_info = json.loads(request.data)
-    user = User.query.filter_by(id=request_info.get['id']).first()
+    user = User.query.filter_by(id=request_info.get('id')).first()
     if user is None:
         json_str = {'status': 'fail', 'status_code': 1, 'message': 'Invalid user'}
         return jsonify(json_str)
@@ -161,7 +162,7 @@ def follow():
 @permission_required(Permission.FOLLOW)
 def unfollow():
     request_info = json.loads(request.data)
-    user = User.query.filter_by(id=request_info.get['id']).first()
+    user = User.query.filter_by(id=request_info.get('id')).first()
     if user is None:
         json_str = {'status': 'fail', 'status_code': 1, 'message': 'Invalid user'}
         return jsonify(json_str)
