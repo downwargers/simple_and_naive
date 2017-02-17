@@ -39,9 +39,9 @@ def create_administrator():
 
     if check_registration_data(administrator_json):
         user = User(email=email, username=username, password=password, confirmed=True)
-        user.set_roles(Role.ADMINISTRATOR)
         db.session.add(user)
         db.session.commit()
+        user.set_roles(Role.ADMINISTRATOR)
         print "Administrator created successfully."
     else:
         print "Fail to create Administrator!"

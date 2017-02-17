@@ -62,11 +62,11 @@ def edit_user_profile():
             user.email = request_info['email']
             user.username = request_info['username']
             user.confirmed = request_info['confirmed']
-            user.set_roles(request_info['roles'])
-            user.set_permissions(request_info['permissions'])
             user.about_me = request_info['about_me']
             db.session.add(user)
             db.session.commit()
+            user.set_roles(request_info['roles'])
+            user.set_permissions(request_info['permissions'])
             json_str = {'status': 'success', 'message': 'The profile has been updated.'}
             return jsonify(json_str)
     else:

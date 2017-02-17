@@ -42,10 +42,12 @@ class User(UserMixin, db.Model):
             if role:
                 self.roles.append(role)
         db.session.add(self)
+        db.session.commit()
 
     def clear_roles(self):
         self.roles = []
         db.session.add(self)
+        db.session.commit()
 
     permissions = db.relationship('Permission', secondary='user_permission_relation', backref=db.backref('users', lazy='dynamic'), lazy='dynamic')
 
@@ -62,10 +64,12 @@ class User(UserMixin, db.Model):
             if permission:
                 self.permissions.append(permission)
         db.session.add(self)
+        db.session.commit()
 
     def clear_permissions(self):
         self.permissions = []
         db.session.add(self)
+        db.session.commit()
 
     followers = db.relationship('FollowRelation', foreign_keys=[FollowRelation.followee_id], backref=db.backref('followee', lazy='joined'), lazy='dynamic', cascade='all, delete-orphan')
     followees = db.relationship('FollowRelation', foreign_keys=[FollowRelation.follower_id], backref=db.backref('follower', lazy='joined'), lazy='dynamic', cascade='all, delete-orphan')
