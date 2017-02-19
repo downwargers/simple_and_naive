@@ -1,6 +1,5 @@
 *.pyc
 .idea/
 migrations/
-*.json
 *.sqlite
 app/upload/image
