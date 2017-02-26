@@ -3,3 +3,4 @@
 migrations/
 *.sqlite
 app/upload/image
+*_cfg.json

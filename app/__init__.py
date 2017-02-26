@@ -2,7 +2,7 @@
 # -*- coding:utf-8 -*-
 from flask import Flask
 from config import config
-from extensions import db, mail, login_manager, pagedown, cors
+from extensions import db, mail, login_manager, pagedown, cors, bootstrap
 from .auth import auth as auth_blueprint
 from .main import main as main_blueprint
 from log import logger, init_logging
@@ -26,6 +26,7 @@ def create_app(name, config_name='development'):
     login_manager.init_app(app)
     pagedown.init_app(app)
     cors.init_app(app)
+    bootstrap.init_app(app)
 
     app.register_blueprint(auth_blueprint, url_prefix='/auth')
     app.register_blueprint(main_blueprint, url_prefix='')

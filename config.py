@@ -30,10 +30,11 @@ class Config(object):
 class DevelopmentConfig(Config):
     DEV = True
     DEBUG = True
-    FLASK_ADMIN = 'downwargers@163.com'
+    FLASK_ADMIN = 'simple_and_naive@hotmail.com'
     MAIL_SUBJECT_PREFIX = '[Simple and Naive]'
-    #MAIL_SENDER = 'Simple and Naive Admin <downwargers@163.com>'
-    MAIL_SENDER = 'downwargers@163.com <downwargers@163.com>'
+    MAIL_SENDER = 'Simple and Naive Admin <simple_and_naive@hotmail.com>'
+    MAIL_SERVER = 'smtp-mail.outlook.com'
+    MAIL_PORT = 587
     SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'data.sqlite')
     #HOST = '127.0.0.1'
     PORT = 5000

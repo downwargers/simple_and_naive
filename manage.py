@@ -6,7 +6,7 @@ from flask.ext.script import Manager, Server, Shell
 
 import app
 from app import create_app, db
-from app.auth.forms import check_registration_data
+from app.auth.forms import RegistrationForm
 from app.auth.models.user import User
 from app.auth.models.role import Role
 from app.auth.models.permission import Permission
@@ -36,15 +36,15 @@ def create_administrator():
     re_password = raw_input("Password (again):")
 
     administrator_json = {"email": email, "username": username, "password": password, "password2": re_password}
-
-    if check_registration_data(administrator_json):
+    valid, errors = RegistrationForm.check(administrator_json)
+    if valid:
         user = User(email=email, username=username, password=password, confirmed=True)
         db.session.add(user)
         db.session.commit()
         user.set_roles(Role.ADMINISTRATOR)
         print "Administrator created successfully."
     else:
-        print "Fail to create Administrator!"
+        print "Fail to create Administrator!", errors
 
 
 @manager.command

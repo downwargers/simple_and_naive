@@ -22,20 +22,20 @@ def check_token(token, expire=3600, **kwargs):
     if not token or token not in session.setdefault('csrf_token',[]):
         return False
     s = Serializer(current_app.config['SECRET_KEY'], expires_in = expire)
-    #try:
-    json_dict = s.loads(token)
-    print json_dict
-    if datetime.now() - datetime.strptime(json_dict['timestamp'], '%Y-%m-%d %H:%M:%S.%f') > timedelta(seconds=expire):
-        print 'AAA'
-        return False
-    if current_user.is_anonymous or json_dict['user_id'] != current_user.id:
-        print 'BBB'
-        return False
-    if not all([json_dict[key] == kwargs[key] for key in kwargs]):
-        print 'CCC'
-        return False
-    return True
-    '''except:
+    try:
+        json_dict = s.loads(token)
+        print json_dict
+        if datetime.now() - datetime.strptime(json_dict['timestamp'], '%Y-%m-%d %H:%M:%S.%f') > timedelta(seconds=expire):
+            print 'AAA'
+            return False
+        if current_user.is_anonymous or json_dict['user_id'] != current_user.id:
+            print 'BBB'
+            return False
+        if not all([json_dict[key] == kwargs[key] for key in kwargs]):
+            print 'CCC'
+            return False
+        return True
+    except:
         print 'DDD'
-        return False'''
+        return False
 

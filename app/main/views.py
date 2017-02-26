@@ -7,7 +7,7 @@ import json
 from .models.post import Post
 from .models.comment import Comment
 from . import main
-from .forms import check_post_data, check_comment_data
+from .forms import PostForm, CommentForm
 from .. import db
 from ..auth.models.permission import Permission
 from ..auth.models.user import User
@@ -47,17 +47,20 @@ def get_post():
 def edit_post():
     if request.method == 'POST':
         request_info = json.loads(request.data)
-        if  check_post_data(request_info):
+        valid, errors = PostForm.check(request_info)
+        if valid:
             post = Post(body=request_info.get('body'), author=current_user._get_current_object())
             db.session.add(post)
             db.session.commit()
             json_str = {'status': 'success', 'status_code': 0, 'message': 'add post successfully!'}
             return jsonify(json_str)
-        json_str = {'status': 'fail', 'status_code': 1, 'message': 'add post unseccessfully'}
-        return jsonify(json_str)
+        else:
+            json_str = {'status': 'fail', 'status_code': 1, 'message': 'add post unseccessfully', 'errors': errors}
+            return jsonify(json_str)
     elif request.method == 'PUT':
         request_info = json.loads(request.data)
-        if check_post_data(request_info):
+        valid, errors = PostForm.check(request_info)
+        if valid:
             post = Post.query.filter_by(id=request_info.get('id')).first()
             if post.alive is True and post.author_id == current_user.id or current_user.is_administrator():
                 post.body = request_info.get('body')
@@ -65,8 +68,12 @@ def edit_post():
                 db.session.commit()
                 json_str = {'status': 'success', 'status_code': 0, 'message': 'edit post successfully!'}
                 return jsonify(json_str)
-        json_str = {'status': 'fail', 'status_code': 1, 'message': 'edit post unseccessfully'}
-        return jsonify(json_str)
+            else:
+                json_str = {'status': 'fail', 'status_code': 1, 'message': 'your cannot edit it'}
+                return jsonify(json_str)
+        else:
+            json_str = {'status': 'fail', 'status_code': 1, 'message': 'edit post unseccessfully', 'errors': errors}
+            return jsonify(json_str)
     elif request.method == 'DELETE':
         request_info = json.loads(request.data)
         post = Post.query.filter_by(id=request_info.get('id')).first()
@@ -95,18 +102,21 @@ def edit_post():
 def edit_comment():
     if request.method == 'POST':
         request_info = json.loads(request.data)
-        if check_comment_data(request_info):
+        valid, errors = CommentForm.check(request_info)
+        if valid:
             post = Post.query.filter_by(id=int(request_info.get('post_id'))).first()
             comment = Comment(body=request_info.get('body'), author=current_user._get_current_object(), post=post)
             db.session.add(comment)
             db.session.commit()
             json_str = {'status': 'success', 'status_code': 0, 'message': 'add comment successfully!'}
             return jsonify(json_str)
-        json_str = {'status': 'fail', 'status_code': 1, 'message': 'add comment unseccessfully'}
-        return jsonify(json_str)
+        else:
+            json_str = {'status': 'fail', 'status_code': 1, 'message': 'add comment unseccessfully', 'errors': errors}
+            return jsonify(json_str)
     elif request.method == 'PUT':
         request_info = json.loads(request.data)
-        if check_comment_data(request_info):
+        valid, errors = CommentForm.check(request_info)
+        if valid:
             comment = Comment.query.filter_by(id=request_info.get('id')).first()
             if comment.alive is True and comment.author_id == current_user.id or current_user.is_administrator():
                 comment.body = request_info.get('body')
@@ -114,8 +124,9 @@ def edit_comment():
                 db.session.commit()
                 json_str = {'status': 'success', 'status_code': 0, 'message': 'edit comment successfully!'}
                 return jsonify(json_str)
-        json_str = {'status': 'fail', 'status_code': 1, 'message': 'edit comment unseccessfully'}
-        return jsonify(json_str)
+        else:
+            json_str = {'status': 'fail', 'status_code': 1, 'message': 'edit comment unseccessfully', 'errors': errors}
+            return jsonify(json_str)
     elif request.method == 'DELETE':
         request_info = json.loads(request.data)
         comment = Comment.query.filter_by(id=request_info.get('id')).first()

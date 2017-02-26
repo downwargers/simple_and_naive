@@ -14,13 +14,13 @@ class LoginForm(FlaskForm):
     remember_me = BooleanField('Keep me logged in')
     submit = SubmitField('Log In')
 
-
-def check_login_data(json_data):
-    form = LoginForm(meta={"csrf": False})
-    form.email.data = json_data.get('email')
-    form.password.data = json_data.get('password')
-    form.remember_me.data = json_data.get('remember_me')
-    return form.validate()
+    @staticmethod
+    def check(json_data):
+        form = LoginForm(meta={"csrf": False})
+        form.email.data = json_data.get('email')
+        form.password.data = json_data.get('password')
+        form.remember_me.data = json_data.get('remember_me')
+        return form.validate(), form.errors
 
 
 class RegistrationForm(FlaskForm):
@@ -38,14 +38,14 @@ class RegistrationForm(FlaskForm):
         if User.query.filter(User.username == field.data).first():
             raise ValidationError('Username already in use.')
 
-
-def check_registration_data(json_data):
-    form = RegistrationForm(meta={"csrf": False})
-    form.email.data = json_data.get('email')
-    form.username.data = json_data.get('username')
-    form.password.data = json_data.get('password')
-    form.password2.data = json_data.get('password2')
-    return form.validate()
+    @staticmethod
+    def check(json_data):
+        form = RegistrationForm(meta={"csrf": False})
+        form.email.data = json_data.get('email')
+        form.username.data = json_data.get('username')
+        form.password.data = json_data.get('password')
+        form.password2.data = json_data.get('password2')
+        return form.validate(), form.errors
 
 
 class EditProfileForm(FlaskForm):
@@ -61,12 +61,12 @@ class EditProfileForm(FlaskForm):
         if field.data != self.user.username and User.query.filter_by(username=field.data).first():
             raise ValidationError('Username already in use.')
 
-
-def check_edit_profile_data(json_data):
-    form = EditProfileForm(meta={"csrf": False})
-    form.username.data = json_data.get('username')
-    form.about_me.data = json_data.get('about_me')
-    return form.validate()
+    @staticmethod
+    def check(json_data):
+        form = EditProfileForm(meta={"csrf": False})
+        form.username.data = json_data.get('username')
+        form.about_me.data = json_data.get('about_me')
+        return form.validate(), form.errors
 
 
 class EditProfileAdminForm(FlaskForm):
@@ -88,11 +88,49 @@ class EditProfileAdminForm(FlaskForm):
         if field.data != self.user.username and User.query.filter_by(username=field.data).first():
             raise ValidationError('Username already in use.')
 
+    @staticmethod
+    def check(json_data, user):
+        form = EditProfileAdminForm(user, meta={"csrf": False})
+        form.email.data = json_data.get('email')
+        form.username.data = json_data.get('username')
+        form.confirmed.data = json_data.get('confirmed')
+        form.about_me.data = json_data.get('about_me')
+        return form.validate(), form.errors
 
-def check_edit_profile_admin_data(json_data, user):
-    form = EditProfileAdminForm(user, meta={"csrf": False})
-    form.email.data = json_data.get('email')
-    form.username.data = json_data.get('username')
-    form.confirmed.data = json_data.get('confirmed')
-    form.about_me.data = json_data.get('about_me')
-    return form.validate()
+
+class ChangePasswordForm(FlaskForm):
+    old_password = PasswordField('Old password', validators=[DataRequired()])
+    password = PasswordField('New password', validators=[DataRequired(), EqualTo('password2', message='Passwords must match')])
+    password2 = PasswordField('Confirm new password', validators=[DataRequired()])
+    submit = SubmitField('Update Password')
+
+    def __init__(self, user, *args, **kwargs):
+        super(ChangePasswordForm, self).__init__(*args, **kwargs)
+        self.user = user
+
+    def validate_password(self, field):
+        if self.user.verify_password(field.data):
+            raise ValidationError('User`s password is wrong.')
+
+    @staticmethod
+    def check(json_data, user):
+        form = ChangePasswordForm(user, meta={"csrf": False})
+        form.old_password.data = json_data.get('old_password')
+        form.password.data = json_data.get('password')
+        form.password2.data = json_data.get('password2')
+        return form.validate(), form.errors
+
+
+class PasswordResetForm(FlaskForm):
+    email = StringField('Email', validators=[DataRequired(), Length(1, 64), Email()])
+    submit = SubmitField('Reset Password')
+
+    def validate_email(self, field):
+        if User.query.filter_by(email=field.data, alive=True).first() is None:
+            raise ValidationError('Unknown email address.')
+
+    @staticmethod
+    def check(json_data, user):
+        form = ChangePasswordForm(user, meta={"csrf": False})
+        form.email.data = json_data.get('email')
+        return form.validate(), form.errors

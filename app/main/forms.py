@@ -10,19 +10,19 @@ class PostForm(FlaskForm):
     body = TextAreaField("What's on your mind?", validators=[DataRequired()])
     submit = SubmitField('Submit')
 
-
-def check_post_data(json_data):
-    form = PostForm(meta={"csrf": False})
-    form.body.data = json_data.get('body')
-    return form.validate()
+    @staticmethod
+    def check(json_data, user):
+        form = PostForm(user, meta={"csrf": False})
+        form.body.data = json_data.get('body')
+        return form.validate(), form.errors
 
 
 class CommentForm(FlaskForm):
     body = TextAreaField("What's on your mind?", validators=[DataRequired()])
     submit = SubmitField('Submit')
 
-
-def check_comment_data(json_data):
-    form = CommentForm(meta={"csrf": False})
-    form.body.data = json_data.get('body')
-    return form.validate()
+    @staticmethod
+    def check(json_data, user):
+        form = PostForm(user, meta={"csrf": False})
+        form.body.data = json_data.get('body')
+        return form.validate(), form.errors

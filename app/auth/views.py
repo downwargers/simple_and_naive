@@ -7,7 +7,7 @@ from .models.user import User
 from .models.role import Role
 from ..main.models.picture import Picture
 from . import auth
-from .forms import check_login_data, check_registration_data, check_edit_profile_admin_data, check_edit_profile_data
+from .forms import LoginForm, RegistrationForm, EditProfileAdminForm, EditProfileForm, ChangePasswordForm, PasswordResetForm
 from .. import db
 from ..email import send_email
 from ..tools import apply_token, check_token
@@ -21,8 +21,9 @@ import os
 def get_user():
     user = User.query.filter_by(username=request.args.get('username')).first()
     if user is None:
-        abort(404)
-    if current_user.is_administrator() and request.args.get('lazy') == 'False':
+        json_str = {'status': 'fail', 'message': 'User doesn`t exist.'}
+        return jsonify(json_str)
+    if (current_user.is_administrator() or current_user.is_authenticated and current_user.id == user.id) and request.args.get('lazy') == 'False':
         user_content = user.to_json()
     else:
         user_content = user.to_json(lazy=True)
@@ -33,7 +34,8 @@ def get_user():
 @auth.route('/user', methods=['POST'])
 def register():
     request_info = json.loads(request.data)
-    if check_registration_data(request_info):
+    valid, errors = LoginForm.check(request_info)
+    if valid:
         user = User(email=request_info.get('email'), username=request_info.get('username'), password=request_info.get('password'))
         db.session.add(user)
         db.session.commit()
@@ -43,8 +45,10 @@ def register():
         token = user.generate_confirmation_token()
         send_email(user.email, 'Confirm Your Account', 'auth/email/confirm', user=user, token=token)
         json_str = {'status': 'success', 'message': 'register successfully!'}
-        return jsonify(json_str)
-    json_str = {'status': 'fail', 'message': 'register unseccessfully'}
+        response = jsonify(json_str)
+        response.set_cookie('token', apply_token())
+        return response
+    json_str = {'status': 'fail', 'message': 'register unseccessfully', 'errors': errors}
     return jsonify(json_str)
 
 
@@ -58,7 +62,8 @@ def edit_user_profile():
         if not user:
             json_str = {'status': 'fail', 'message': 'user does not exist!'}
             return jsonify(json_str)
-        if check_edit_profile_admin_data(request_info, user):
+        valid, errors = EditProfileAdminForm.check(request_info, user)
+        if valid:
             user.email = request_info['email']
             user.username = request_info['username']
             user.confirmed = request_info['confirmed']
@@ -69,16 +74,21 @@ def edit_user_profile():
             user.set_permissions(request_info['permissions'])
             json_str = {'status': 'success', 'message': 'The profile has been updated.'}
             return jsonify(json_str)
+        else:
+            json_str = {'status': 'fail', 'message': 'edit profile unseccessfully', 'errors': errors}
+            return jsonify(json_str)
     else:
-        if check_edit_profile_data(request_info):
+        valid, errors = EditProfileForm.check(request_info)
+        if valid:
             current_user.username = request_info['username']
             current_user.about_me = request_info['about_me']
             db.session.add(current_user)
             db.session.commit()
             json_str = {'status': 'success', 'message': 'Your profile has been updated.'}
             return jsonify(json_str)
-    json_str = {'status': 'fail', 'message': 'edit profile unseccessfully'}
-    return jsonify(json_str)
+        else:
+            json_str = {'status': 'fail', 'message': 'edit profile unseccessfully', 'errors': errors}
+            return jsonify(json_str)
 
 
 @auth.route('/user', methods=['DELETE'])
@@ -91,23 +101,67 @@ def delete_user_profile():
         if not user:
             json_str = {'status': 'fail', 'message': 'user does not exist!'}
             return jsonify(json_str)
-        if check_edit_profile_admin_data(request_info, user):
-            user.alive = False
-            db.session.add(user)
-            db.session.commit()
-            logout_user()
-            json_str = {'status': 'success', 'message': 'Delete the user successfully.'}
+        user.alive = False
+        db.session.add(user)
+        db.session.commit()
+        logout_user()
+        json_str = {'status': 'success', 'message': 'Delete the user successfully.'}
+        return jsonify(json_str)
+    else:
+        current_user.alive = False
+        db.session.add(current_user)
+        db.session.commit()
+        logout_user()
+        json_str = {'status': 'success', 'message': 'Delete your user successfully.'}
+        return jsonify(json_str)
+
+
+@auth.route('/change-password', methods=['POST'])
+@login_required
+def change_password():
+    request_info = json.loads(request.data)
+    if current_user.is_administrator():
+        user = User.query.filter_by(id=request_info['id']).first()
+        if not user:
+            json_str = {'status': 'fail', 'message': 'user does not exist!'}
             return jsonify(json_str)
     else:
-        if check_edit_profile_data(request_info):
-            current_user.alive = False
-            db.session.add(current_user)
-            db.session.commit()
-            logout_user()
-            json_str = {'status': 'success', 'message': 'Delete your user successfully.'}
+        user = current_user
+
+    valid, errors = ChangePasswordForm.check(user, request_info)
+    if valid:
+        user.password = request_info['password']
+        db.session.add(user)
+        db.session.commit()
+        json_str = {'status': 'success', 'message': 'Password has been updated.'}
+        return jsonify(json_str)
+    else:
+        json_str = {'status': 'fail', 'message': 'edit password unseccessfully', 'errors': errors}
+        return jsonify(json_str)
+
+
+@auth.route('/reset', methods=['POST'])
+def password_reset_request():
+    request_info = json.loads(request.data)
+    if current_user.is_administrator():
+        user = User.query.filter_by(id=request_info['id']).first()
+        if not user:
+            json_str = {'status': 'fail', 'message': 'user does not exist!'}
             return jsonify(json_str)
-    json_str = {'status': 'fail', 'message': 'edit profile unseccessfully'}
-    return jsonify(json_str)
+    else:
+        user = current_user
+    valid, errors = PasswordResetForm.check(user, request_info)
+    if valid:
+        password = hashlib.md5(os.urandom(21)).hexdigest()[10]
+        user.password = password
+        send_email(user.email, 'Reset Your Password', 'auth/email/reset_password', user=user, password=password)
+        db.session.add(user)
+        db.session.commit()
+        json_str = {'status': 'success', 'message': 'Password has been updated.'}
+        return jsonify(json_str)
+    else:
+        json_str = {'status': 'fail', 'message': 'edit password unseccessfully', 'errors': errors}
+        return jsonify(json_str)
 
 
 @auth.route('/check_email', methods=['GET'])
@@ -175,7 +229,8 @@ def get_avatar():
 @auth.route('/login', methods=['POST'])
 def login():
     request_info = json.loads(request.data)
-    if check_login_data(request_info):
+    valid, errors = LoginForm.check(request_info)
+    if valid:
         user = User.query.filter_by(email=request_info.get('email')).first()
         if user is not None and user.verify_password(request_info.get('password')):
             login_user(user, request_info.get('remember_me', False))
@@ -183,8 +238,9 @@ def login():
             response = jsonify(json_str)
             response.set_cookie('token', apply_token())
             return response
-    json_str = {'status': 'fail', 'message': 'login unseccessfully'}
-    return jsonify(json_str)
+    else:
+        json_str = {'status': 'fail', 'message': 'login unseccessfully', 'errors': errors}
+        return jsonify(json_str)
 
 
 @auth.route('/logout', methods=['POST'])
