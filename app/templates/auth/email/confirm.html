@@ -3,7 +3,7 @@
 {% block title %}Simple and Naive - Confirm{% endblock %}
 
 {% block page_content %}
-<p>Dear {{ user.username }},</p>
+    <p>Dear {{ user.username }},</p>
     <p>Welcome to S&N!</p>
     <p>To confirm your account please click on the following link:</p>
     <a href="{{ url_for('auth.confirm', token=token, _external=True) }}"><b>Click Here</b></a>

@@ -116,8 +116,9 @@ def delete_user_profile():
         return jsonify(json_str)
 
 
-@auth.route('/change-password', methods=['POST'])
+@auth.route('/change_password', methods=['POST'])
 @login_required
+@token_required
 def change_password():
     request_info = json.loads(request.data)
     if current_user.is_administrator():
@@ -128,7 +129,7 @@ def change_password():
     else:
         user = current_user
 
-    valid, errors = ChangePasswordForm.check(user, request_info)
+    valid, errors = ChangePasswordForm.check(request_info, user)
     if valid:
         user.password = request_info['password']
         db.session.add(user)
@@ -238,6 +239,9 @@ def login():
             response = jsonify(json_str)
             response.set_cookie('token', apply_token())
             return response
+        else:
+            json_str = {'status': 'fail', 'message': 'login unseccessfully'}
+            return jsonify(json_str)
     else:
         json_str = {'status': 'fail', 'message': 'login unseccessfully', 'errors': errors}
         return jsonify(json_str)
