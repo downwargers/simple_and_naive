@@ -2,12 +2,28 @@
 
 {% block title %}Simple and Naive - Confirm{% endblock %}
 
-{% block page_content %}
-    <p>Dear {{ user.username }},</p>
-    <p>Welcome to S&N!</p>
-    <p>To confirm your account please click on the following link:</p>
-    <a href="{{ url_for('auth.confirm', token=token, _external=True) }}"><b>Click Here</b></a>
-    <p style="text-align:right">Sincerely,</p>
-    <p style="text-align:right">The S&N Team</p>
-    <p>Note: replies to this email address are not monitored.</p>
+{% block content %}
+<div width="100%" style="background:#EAEAEA;">
+    <br>
+    <br>
+    <div style="margin:20 auto;padding:20;width:50%;background:#FFFFFF;">
+        <h2 style="Margin-top: 0;Margin-bottom: 0;font-style: normal;font-weight: normal;color: #3e4751;font-size: 16px;line-height: 24px;font-family: Ubuntu,sans-serif;"><strong>Dear {{ user.username }},</strong></h2>
+        <p style="Margin-top: 16px;Margin-bottom: 0;">Welecome to S& N!</p>
+        <p style="Margin-top: 16px;Margin-bottom: 0;">To confirm your account please click on the following link:</p>
+        <p style="Margin-top: 16px;Margin-bottom: 0;"><a href="{{ url_for('auth.confirm', token=token, _external=True) }}">CLICK HERE</a></p>
+        <br>
+        <p style="Margin-top: 16px;Margin-bottom: 0;">Note: replies to this email address are not monitored.</p>
+
+        <br>
+        <br>
+        <div style="Margin-left: 20px;Margin-right: 20px;Margin-bottom: 24px;">
+            <p style="Margin-top: 0;Margin-bottom: 0;">Sincerely,<br>
+            The S&N Team</p>
+        </div>
+
+
+    </div>
+    <br>
+    <br>
+</div>
 {% endblock %}

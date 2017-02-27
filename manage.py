@@ -6,6 +6,7 @@ from flask.ext.script import Manager, Server, Shell
 
 import app
 from app import create_app, db
+from app.email import send_email
 from app.auth.forms import RegistrationForm
 from app.auth.models.user import User
 from app.auth.models.role import Role
@@ -21,7 +22,7 @@ migrate = Migrate(app, db)
 
 
 def make_shell_context():
-    return dict(app=app, db=db, User=User, Role=Role, Permission=Permission, FollowRelation=FollowRelation, UserRoleRelation=UserRoleRelation, UserPermissionRelation=UserPermissionRelation, RolePermissionRelation=RolePermissionRelation, Post=Post, Comment=Comment, Picture=Picture)
+    return dict(app=app, db=db, User=User, Role=Role, Permission=Permission, FollowRelation=FollowRelation, UserRoleRelation=UserRoleRelation, UserPermissionRelation=UserPermissionRelation, RolePermissionRelation=RolePermissionRelation, Post=Post, Comment=Comment, Picture=Picture, send_email=send_email)
 manager.add_command("shell", Shell(make_context=make_shell_context))
 manager.add_command('db', MigrateCommand)
 manager.add_command("server", Server(host=app.config['HOST'], port=app.config['PORT']))
